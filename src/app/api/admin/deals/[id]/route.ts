@@ -44,6 +44,8 @@ const dayEnum = z.enum([
   'monday','tuesday','wednesday','thursday','friday','saturday','sunday'
 ]);
 
+const kindEnum = z.enum(['fixed', 'percent_off', 'amount_off', 'bogo']);
+
 const editSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
   day_of_week: dayEnum,
@@ -51,6 +53,7 @@ const editSchema = z.object({
   venue_address: z.string().trim().min(1, 'Venue address is required'),
   website_url: z.string().trim().url('Website must be a valid URL').optional().or(z.literal('')),
   notes: z.string().trim().optional(),
+  kind: kindEnum.default('fixed'),
   is_active: z.union([z.boolean(), z.string()]).optional(),
 });
 
@@ -128,18 +131,46 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       day_of_week: parsed.day_of_week,
       venue_name: parsed.venue_name,
       venue_address: parsed.venue_address,
+      kind: parsed.kind,
       updated_at: new Date().toISOString(),
     };
 
     // Only set optional fields if present (don't violate NOT NULL cols)
     if ('website_url' in raw) payload.website_url = parsed.website_url ?? null;
     if ('notes' in raw) payload.notes = parsed.notes ?? null;
+    if ('is_active' in raw) payload.is_active = !!parsed.is_active;
+
     // Convert price (dollars) to price_cents (integer)
     if ('price' in raw) {
       const cents = priceToCentsMaybe(raw.price as string);
-      if (cents !== undefined) payload.price_cents = cents;
+      payload.price_cents = cents;
     }
-    if ('is_active' in raw) payload.is_active = !!parsed.is_active;
+
+    // Handle kind-specific fields
+    if (parsed.kind === 'fixed') {
+      payload.percent_off = null;
+      payload.amount_off_cents = null;
+      payload.buy_qty = null;
+      payload.get_qty = null;
+    } else if (parsed.kind === 'percent_off') {
+      if ('percent_off' in raw) payload.percent_off = Number(raw.percent_off) || null;
+      payload.amount_off_cents = null;
+      payload.buy_qty = null;
+      payload.get_qty = null;
+    } else if (parsed.kind === 'amount_off') {
+      if ('amount_off' in raw) {
+        const cents = priceToCentsMaybe(raw.amount_off as string);
+        payload.amount_off_cents = cents;
+      }
+      payload.percent_off = null;
+      payload.buy_qty = null;
+      payload.get_qty = null;
+    } else if (parsed.kind === 'bogo') {
+      if ('buy_qty' in raw) payload.buy_qty = Number(raw.buy_qty) || null;
+      if ('get_qty' in raw) payload.get_qty = Number(raw.get_qty) || null;
+      payload.percent_off = null;
+      payload.amount_off_cents = null;
+    }
 
     const { error } = await admin.from('deals').update(payload).eq('id', id);
     if (error) return backToEdit(req, id, error.message);

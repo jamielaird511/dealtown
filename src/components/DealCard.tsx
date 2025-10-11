@@ -46,11 +46,18 @@ export default function DealCard({ deal }: DealCardProps) {
             <p className="text-sm text-black/60 truncate">{deal.venue_address}</p>
           )}
         </div>
-        {deal.price_cents != null && (
-          <span className="shrink-0 text-orange-600 font-semibold">
-            {moneyFromCents(deal.price_cents)}
-          </span>
-        )}
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          {(deal as any).label && (
+            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+              {(deal as any).label}
+            </span>
+          )}
+          {(deal as any).effective_price_cents != null && (
+            <span className="text-orange-600 font-semibold">
+              ${moneyFromCents((deal as any).effective_price_cents)}
+            </span>
+          )}
+        </div>
       </div>
 
       <p className="text-[15px]">{deal.title}</p>

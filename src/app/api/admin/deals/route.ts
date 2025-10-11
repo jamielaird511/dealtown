@@ -5,6 +5,8 @@ import { centsFromMoney } from '@/lib/money';
 
 const dayEnum = z.enum(['monday','tuesday','wednesday','thursday','friday','saturday','sunday']);
 
+const kindEnum = z.enum(['fixed', 'percent_off', 'amount_off', 'bogo']);
+
 const createDealSchema = z.object({
   title: z.string().min(2),
   day_of_week: dayEnum,
@@ -13,14 +15,32 @@ const createDealSchema = z.object({
   venue_address: z.string().min(2),
   website_url: z.string().url().optional().or(z.literal('')).transform(v => v || null),
   notes: z.string().max(1000).optional().or(z.literal('')).transform(v => v || null),
+  kind: kindEnum.default('fixed'),
   price: z.string().optional(),
+  percent_off: z.coerce.number().int().min(1).max(100).optional(),
+  amount_off: z.string().optional(),
+  buy_qty: z.coerce.number().int().min(1).optional(),
+  get_qty: z.coerce.number().int().min(1).optional(),
 }).transform((v) => {
-  // Convert price (dollars) to price_cents, then remove price field
-  const { price, ...rest } = v;
+  const { price, amount_off, ...rest } = v;
   return {
     ...rest,
     price_cents: centsFromMoney(price),
+    amount_off_cents: centsFromMoney(amount_off),
   };
+}).superRefine((data, ctx) => {
+  if (data.kind === 'fixed' && !data.price_cents) {
+    ctx.addIssue({ path: ['price'], code: 'custom', message: 'Price required for fixed deals' });
+  }
+  if (data.kind === 'percent_off' && !data.percent_off) {
+    ctx.addIssue({ path: ['percent_off'], code: 'custom', message: 'Percent off required' });
+  }
+  if (data.kind === 'amount_off' && !data.amount_off_cents) {
+    ctx.addIssue({ path: ['amount_off'], code: 'custom', message: 'Amount off required' });
+  }
+  if (data.kind === 'bogo' && (!data.buy_qty || !data.get_qty)) {
+    ctx.addIssue({ path: ['buy_qty'], code: 'custom', message: 'Buy and get quantities required' });
+  }
 });
 
 const qSchema = z.object({
@@ -48,6 +68,18 @@ export async function GET(req: Request) {
   const { supabase } = await requireAdmin();
 
   const url = new URL(req.url);
+  
+  // Support ?id= for single deal fetch
+  const id = url.searchParams.get('id');
+  if (id) {
+    const { data, error } = await supabase.from('deals')
+      .select('*')
+      .eq('id', Number(id))
+      .maybeSingle();
+    if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true, data: data ? [data] : [] });
+  }
+
   const parsed = qSchema.safeParse(Object.fromEntries(url.searchParams));
   if (!parsed.success) return NextResponse.json({ ok: false, message: 'Invalid params' }, { status: 400 });
 
@@ -95,8 +127,27 @@ export async function POST(req: Request) {
     return NextResponse.redirect(url, { status: 303 });
   }
 
-  const { error } = await supabase.from('deals')
-    .insert({ ...parsed.data, created_by: user.id });
+  // Clean up: set null for unused fields based on kind
+  const cleanData = { ...parsed.data, created_by: user.id };
+  if (cleanData.kind === 'fixed') {
+    cleanData.percent_off = null;
+    cleanData.amount_off_cents = null;
+    cleanData.buy_qty = null;
+    cleanData.get_qty = null;
+  } else if (cleanData.kind === 'percent_off') {
+    cleanData.amount_off_cents = null;
+    cleanData.buy_qty = null;
+    cleanData.get_qty = null;
+  } else if (cleanData.kind === 'amount_off') {
+    cleanData.percent_off = null;
+    cleanData.buy_qty = null;
+    cleanData.get_qty = null;
+  } else if (cleanData.kind === 'bogo') {
+    cleanData.percent_off = null;
+    cleanData.amount_off_cents = null;
+  }
+
+  const { error } = await supabase.from('deals').insert(cleanData);
 
   if (error) {
     const url = new URL('/admin/new', req.url);

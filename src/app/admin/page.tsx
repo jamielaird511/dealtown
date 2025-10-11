@@ -10,7 +10,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: { ok?
 
   const { data: deals } = await supabase
     .from('deals')
-    .select('id,title,day_of_week,is_active,venue_name,venue_address,website_url,notes,price_cents,created_at,updated_at')
+    .select('id,title,day_of_week,is_active,venue_name,venue_address,website_url,notes,kind,price_cents,percent_off,amount_off_cents,buy_qty,get_qty,effective_price_cents,label,created_at,updated_at')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -71,7 +71,8 @@ export default async function AdminPage({ searchParams }: { searchParams?: { ok?
                   </td>
                   <td className="p-3 text-sm capitalize">{d.day_of_week}</td>
                   <td className="p-3 text-sm">
-                    {d.price_cents ? `$${moneyFromCents(d.price_cents)}` : '—'}
+                    {d.label && <span className="inline-block mr-2 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">{d.label}</span>}
+                    {d.effective_price_cents ? `$${moneyFromCents(d.effective_price_cents)}` : '—'}
                   </td>
                   <td className="p-3">
                     <div className="flex gap-2">
@@ -97,9 +98,12 @@ export default async function AdminPage({ searchParams }: { searchParams?: { ok?
                   <p className="text-sm text-gray-600">{d.venue_name}</p>
                   <p className="text-xs text-gray-500">{d.venue_address}</p>
                 </div>
-                {d.price_cents && (
-                  <span className="text-orange-600 font-semibold">${moneyFromCents(d.price_cents)}</span>
-                )}
+                <div className="flex flex-col items-end gap-1">
+                  {d.label && <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">{d.label}</span>}
+                  {d.effective_price_cents && (
+                    <span className="text-orange-600 font-semibold">${moneyFromCents(d.effective_price_cents)}</span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <ActiveToggle id={d.id} initial={d.is_active} />
