@@ -26,18 +26,20 @@ const DAYS: { label: string; value: string }[] = [
   { label: 'Sun',   value: 'sunday' },
 ];
 
-export default async function Page({
+export default async function Home({
   searchParams,
 }: {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: { day?: string };
 }) {
-  const dayParam = Array.isArray(searchParams?.day) ? searchParams?.day[0] : searchParams?.day;
+  const dayParam = searchParams?.day;
   const selectedDay = (dayParam ?? 'today').toLowerCase();
 
-  const [fuel, deals] = await Promise.all([
-    fetchFuelStations(),
-    fetchDeals(dayParam),       // ← this now handles both cases
-  ]);
+  console.log('[page] dayParam =', dayParam, 'selectedDay =', selectedDay);
+
+  const deals = await fetchDeals(dayParam);
+  const fuel = await fetchFuelStations();
+
+  console.log('[page] deals count =', deals?.length, 'titles =', deals?.map(d => d.title));
 
   const grouped = fuel.reduce<Record<string, typeof fuel>>((acc, row) => {
     const key = row.name ?? `Station ${row.station_id}`;
@@ -49,8 +51,18 @@ export default async function Page({
     <main className="mx-auto max-w-4xl px-6 py-10 space-y-8">
       {/* Header */}
       <header className="mb-2">
-        <h1 className="text-3xl font-semibold tracking-tight brand-title">DealTown</h1>
-        <p className="mt-1 text-sm text-gray-500">Today's deals and local fuel prices</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight brand-title">DealTown</h1>
+            <p className="mt-1 text-sm text-gray-500">Today's deals and local fuel prices</p>
+          </div>
+          <Link 
+            href="/venues" 
+            className="text-sm text-gray-600 hover:text-orange-500 transition underline"
+          >
+            Browse Venues
+          </Link>
+        </div>
       </header>
 
       {/* Fuel first */}
@@ -124,11 +136,20 @@ export default async function Page({
           </ul>
         </div>
 
-        <div className="mt-4 grid gap-3">
-          {deals.length === 0 ? (
-            <p className="text-black/60">No deals for {selectedDay}.</p>
+        <div className="mt-4 space-y-3">
+          {/* TEMP: raw debug to prove SSR data exists */}
+          <pre className="text-xs text-gray-400">
+            DEBUG: deals.length = {deals?.length ?? 0}
+            {deals && deals.length > 0 && ` | First: ${deals[0]?.title}`}
+          </pre>
+          
+          {/* ✅ Use the deals we just fetched. DO NOT shadow with another variable */}
+          {deals && deals.length > 0 ? (
+            <div className="grid gap-3">
+              {deals.map((d) => <DealCard key={d.id} deal={d} />)}
+            </div>
           ) : (
-            deals.map((d) => <DealCard key={d.id} deal={d} />)
+            <p className="text-black/60">No deals for {selectedDay}.</p>
           )}
         </div>
       </section>

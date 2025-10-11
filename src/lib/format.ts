@@ -2,13 +2,33 @@
  * Format utilities for deal display
  */
 
-const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DayLabelBySlug: Record<string, string> = {
+  monday: "Monday",
+  tuesday: "Tuesday",
+  wednesday: "Wednesday",
+  thursday: "Thursday",
+  friday: "Friday",
+  saturday: "Saturday",
+  sunday: "Sunday",
+};
+
+const DayLabelByIndex = [
+  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
+];
 
 /**
- * Convert numeric day (0-6) to short weekday name
+ * Convert day (string slug or numeric 0-6) to formatted weekday name
  */
-export function formatDayOfWeek(day: number): string {
-  return WEEKDAY_NAMES[day] || '';
+export function formatDayOfWeek(day: string | number): string {
+  if (typeof day === "string") {
+    const key = day.toLowerCase();
+    return DayLabelBySlug[key] ?? day;
+  }
+  // Keep numeric support if some places still pass 0..6
+  if (typeof day === "number" && day >= 0 && day <= 6) {
+    return DayLabelByIndex[day];
+  }
+  return String(day);
 }
 
 /**

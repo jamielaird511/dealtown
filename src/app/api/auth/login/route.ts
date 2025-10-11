@@ -2,16 +2,16 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 
-function sb() {
+function makeClient() {
   const store = cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(n) { return store.get(n)?.value; },
-        set(n, v, o) { store.set(n, v, o); },
-        remove(n, o) { store.set(n, '', { ...o, maxAge: 0 }); },
+        get: (n) => store.get(n)?.value,
+        set: (n, v, o) => { store.set(n, v, o); },
+        remove: (n, o) => { store.set(n, '', { ...o, maxAge: 0 }); },
       },
     }
   );
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     password = String(form.get('password') ?? '');
   }
 
-  const supabase = sb();
+  const supabase = makeClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     const url = new URL('/login', req.url);

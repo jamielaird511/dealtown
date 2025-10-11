@@ -1,31 +1,13 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
-import { centsFromMoney } from '@/lib/money';
 
-const dayEnum = z.enum(['monday','tuesday','wednesday','thursday','friday','saturday','sunday']);
-
-const createDealSchema = z.object({
-  title: z.string().min(2),
-  day_of_week: dayEnum,
-  is_active: z.boolean().default(true),
-  venue_name: z.string().min(2),
-  venue_address: z.string().min(2),
-  website_url: z.string().url().optional().or(z.literal('')).transform(v => v || null),
-  notes: z.string().max(1000).optional().or(z.literal('')).transform(v => v || null),
-  price: z.string().optional(),
-  price_cents: z.number().int().nullable().optional(),
-}).transform((v) => ({
-  ...v,
-  price_cents: v.price_cents ?? centsFromMoney(v.price),
-}));
-
-const qSchema = z.object({
-  day: z.string().optional(),
-  q: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-  offset: z.coerce.number().int().min(0).optional(),
-});
+// Convert dollars to cents
+function toCents(raw: unknown): number | null {
+  if (raw == null || String(raw).trim() === "") return null;
+  const dollars = parseFloat(String(raw).replace(/[^0-9.]/g, ""));
+  if (Number.isNaN(dollars)) return null;
+  return Math.round(dollars * 100);
+}
 
 // Simple rate limit
 const buckets = new Map<string, { last:number; tokens:number }>();
@@ -41,43 +23,76 @@ function rateOk(ip: string, cap=10, refillMs=6_000) {
   return true;
 }
 
+export async function POST(req: Request) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
+  if (!rateOk(ip)) return NextResponse.json({ error: 'Slow down' }, { status: 429 });
+
+  const { supabase } = await requireAdmin();
+  const form = await req.formData();
+
+  const title = String(form.get('title') || '').trim();
+  const day_of_week = String(form.get('day_of_week') || '').toLowerCase();
+  const is_active = form.get('is_active') === 'on' || form.get('is_active') === 'true';
+  const priceRaw = form.get('price') ?? form.get('price_cents'); // accept either field name
+  const price_cents = toCents(priceRaw);
+  const notes = String(form.get('notes') || '') || null;
+
+  const venue_id = Number(form.get('venue_id'));
+  if (!venue_id || Number.isNaN(venue_id)) {
+    const url = new URL('/admin/new', req.url);
+    url.searchParams.set('error', 'venue_id is required');
+    return NextResponse.redirect(url, { status: 303 });
+  }
+
+  const { error } = await supabase
+    .from('deals')
+    .insert([{ title, day_of_week, is_active, price_cents, notes, venue_id }]);
+
+  if (error) {
+    const url = new URL('/admin/new', req.url);
+    url.searchParams.set('error', error.message);
+    return NextResponse.redirect(url, { status: 303 });
+  }
+
+  const url = new URL('/admin', req.url);
+  url.searchParams.set('ok', '1');
+  return NextResponse.redirect(url, { status: 303 });
+}
+
 export async function GET(req: Request) {
   const { supabase } = await requireAdmin();
 
   const url = new URL(req.url);
-  const parsed = qSchema.safeParse(Object.fromEntries(url.searchParams));
-  if (!parsed.success) return NextResponse.json({ ok: false, message: 'Invalid params' }, { status: 400 });
+  const id = url.searchParams.get('id');
+  const day = url.searchParams.get('day');
+  const limit = Number(url.searchParams.get('limit')) || 50;
+  const offset = Number(url.searchParams.get('offset')) || 0;
 
-  const { day, q, limit = 50, offset = 0 } = parsed.data;
+  // Support ?id= for single deal fetch
+  if (id) {
+    const { data, error } = await supabase.from('deals')
+      .select(`
+        *,
+        venue:venues!deals_venue_id_fkey (*)
+      `)
+      .eq('id', Number(id))
+      .maybeSingle();
+    if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true, data: data ? [data] : [] });
+  }
 
   let query = supabase.from('deals')
-    .select('*', { count: 'exact' })
+    .select(`
+      *,
+      venue:venues!deals_venue_id_fkey (*)
+    `, { count: 'exact' })
+    .order('price_cents', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (day) query = query.eq('day_of_week', day);
-  if (q) query = query.or(`title.ilike.%${q}%,venue_name.ilike.%${q}%`);
 
   const { data, error, count } = await query;
   if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 });
   return NextResponse.json({ ok: true, data, count });
-}
-
-export async function POST(req: Request) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
-  if (!rateOk(ip)) return NextResponse.json({ ok: false, message: 'Slow down' }, { status: 429 });
-
-  const { supabase, user } = await requireAdmin();
-
-  const body = await req.json();
-  const parsed = createDealSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ ok: false, message: 'Invalid input', errors: parsed.error.flatten() }, { status: 400 });
-
-  const { data, error } = await supabase.from('deals')
-    .insert({ ...parsed.data, created_by: user.id })
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 });
-  return NextResponse.json({ ok: true, data });
 }

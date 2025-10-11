@@ -5,14 +5,28 @@ import { moneyFromCents } from '@/lib/money';
 import { ActiveToggle } from '@/components/ActiveToggle';
 import { DeleteButton } from '@/components/DeleteButton';
 
+// Force dynamic rendering - never cache admin pages
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function AdminPage() {
   const { user, supabase } = await requireAdmin();
 
-  const { data: deals } = await supabase
+  const { data: deals, error: dealsError } = await supabase
     .from('deals')
-    .select('id,title,day_of_week,is_active,venue_name,venue_address,website_url,notes,price_cents,created_at,updated_at')
+    .select(`
+      id, title, day_of_week, is_active, venue_id, price_cents, notes, created_at, updated_at,
+      venue:venues!deals_venue_id_fkey (
+        id, name, address, website_url
+      )
+    `)
+    .order('price_cents', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(50);
+
+  if (dealsError) {
+    console.error('Admin deals query error:', dealsError);
+  }
 
   return (
     <main className="p-6 space-y-4 max-w-7xl mx-auto">
@@ -22,11 +36,14 @@ export default async function AdminPage() {
           <p className="text-sm text-gray-600">Signed in as {user.email}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/admin/new" className="rounded-lg bg-orange-500 text-white px-4 py-2 font-medium">
+          <Link href="/admin/venues" className="rounded-lg bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200">
+            Venues
+          </Link>
+          <Link href="/admin/new" className="rounded-lg bg-orange-500 text-white px-4 py-2 font-medium hover:bg-orange-600">
             New Deal
           </Link>
           <form action="/api/auth/logout" method="post">
-            <button className="rounded-lg bg-gray-200 px-3 py-2 text-sm">Sign out</button>
+            <button className="rounded-lg bg-gray-200 px-3 py-2 text-sm hover:bg-gray-300">Sign out</button>
           </form>
         </div>
       </div>
@@ -54,8 +71,8 @@ export default async function AdminPage() {
                   </td>
                   <td className="p-3">{d.title}</td>
                   <td className="p-3">
-                    <div className="text-sm">{d.venue_name}</div>
-                    <div className="text-xs text-gray-500">{d.venue_address}</div>
+                    <div className="text-sm">{(d as any).venue?.name}</div>
+                    <div className="text-xs text-gray-500">{(d as any).venue?.address}</div>
                   </td>
                   <td className="p-3 text-sm capitalize">{d.day_of_week}</td>
                   <td className="p-3 text-sm">
@@ -82,8 +99,8 @@ export default async function AdminPage() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <h3 className="font-semibold">{d.title}</h3>
-                  <p className="text-sm text-gray-600">{d.venue_name}</p>
-                  <p className="text-xs text-gray-500">{d.venue_address}</p>
+                  <p className="text-sm text-gray-600">{(d as any).venue?.name}</p>
+                  <p className="text-xs text-gray-500">{(d as any).venue?.address}</p>
                 </div>
                 {d.price_cents && (
                   <span className="text-orange-600 font-semibold">${moneyFromCents(d.price_cents)}</span>

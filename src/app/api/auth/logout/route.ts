@@ -3,13 +3,21 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 
 export async function POST() {
-  const cookieStore = cookies();
+  const store = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get: (k) => cookieStore.get(k)?.value, set: (k, v, o) => cookieStore.set(k, v, o), remove: (k, o) => cookieStore.set(k, '', { ...o, maxAge: 0 }) } }
+    {
+      cookies: {
+        get: (n) => store.get(n)?.value,
+        set: (n, v, o) => { store.set(n, v, o); },
+        remove: (n, o) => { store.set(n, '', { ...o, maxAge: 0 }); },
+      },
+    }
   );
   await supabase.auth.signOut();
-  return NextResponse.json({ ok: true });
+  return NextResponse.redirect(
+    new URL('/', process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+    { status: 303 }
+  );
 }
-

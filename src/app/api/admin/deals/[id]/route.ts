@@ -1,156 +1,154 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
-import { z, ZodError } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 
-function sb() {
-  const store = cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(n) { return store.get(n)?.value; },
-        set(n, v, o) { store.set(n, v, o); },
-        remove(n, o) { store.set(n, '', { ...o, maxAge: 0 }); },
-      },
-    }
-  );
+// Convert "28.00" => 2800, "", null => null
+function toCents(raw: unknown): number | null {
+  if (raw == null) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  const dollars = parseFloat(s.replace(/[^0-9.]/g, ""));
+  return Number.isFinite(dollars) ? Math.round(dollars * 100) : null;
 }
 
-/** Parse body ONCE. Supports JSON & FormData. */
-async function readBody(req: Request) {
-  const ct = req.headers.get('content-type') ?? '';
-  if (ct.includes('application/json')) {
-    const json = await req.json();
-    // unify access: body.get(name)
-    return {
-      type: 'json' as const,
-      raw: json as Record<string, any>,
-      get: (k: string) => (json as any)?.[k],
-      entries: () => Object.entries(json ?? {}),
-    };
-  }
-  const form = await req.formData();
-  return {
-    type: 'form' as const,
-    raw: form,
-    get: (k: string) => form.get(k),
-    entries: () => Array.from(form.entries()),
-  };
-}
-
-const dayEnum = z.enum([
-  'monday','tuesday','wednesday','thursday','friday','saturday','sunday'
-]);
-
-const editSchema = z.object({
-  title: z.string().trim().min(1, 'Title is required'),
-  day_of_week: dayEnum,
-  venue_name: z.string().trim().min(1, 'Venue name is required'),
-  venue_address: z.string().trim().min(1, 'Venue address is required'),
-  website_url: z.string().trim().url('Website must be a valid URL').optional().or(z.literal('')),
-  notes: z.string().trim().optional(),
-  price: z.string().trim().optional(),
-  is_active: z.union([z.boolean(), z.string()]).optional(),
-});
-
-function priceToCentsMaybe(s?: string) {
-  if (s == null) return undefined;
-  const n = Number(String(s).replace(/[^\d.]/g, ''));
-  if (Number.isNaN(n)) return undefined;
-  return Math.round(n * 100);
-}
-
-function backToEdit(req: Request, id: string | number, msg?: string) {
-  const url = new URL(`/admin/${id}`, req.url);
-  if (msg) url.searchParams.set('error', msg);
-  return NextResponse.redirect(url, { status: 303 });
-}
-function backToList(req: Request, msg?: string) {
-  const url = new URL('/admin', req.url);
-  if (msg) url.searchParams.set('error', msg);
-  return NextResponse.redirect(url, { status: 303 });
-}
-
-export async function POST(req: Request, ctx: { params: { id: string } }) {
-  // Some forms use POST + hidden _method=PATCH or _action=delete
-  return PATCH(req, ctx);
-}
-
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
-  const admin = sb();
-
-  // ✅ Read body ONCE
-  const body = await readBody(req);
-
-  // Determine method/action without reading again
-  const methodOverride = String(body.get('_method') ?? '').toUpperCase();
-  const action = String(body.get('_action') ?? '');
-
-  if (action === 'delete' || methodOverride === 'DELETE') {
-    try {
-      const { error } = await admin.from('deals').delete().eq('id', id);
-      if (error) return backToList(req, error.message);
-      return backToList(req);
-    } catch (e: any) {
-      console.error('DELETE failed:', e);
-      return backToList(req, 'Unexpected error while deleting');
-    }
-  }
-
-  // Build a plain object from body once
-  const raw: Record<string, any> =
-    body.type === 'form'
-      ? Object.fromEntries(body.entries())
-      : (body.raw as Record<string, any>);
-
-  // Coerce checkbox and blanks
-  if (typeof raw.is_active === 'string') {
-    raw.is_active = ['on', 'true', '1', 'yes'].includes(raw.is_active.toLowerCase());
-  }
-  // Allow blank URL to mean "no URL"
-  if (raw.website_url === '') raw.website_url = undefined;
-
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const parsed = editSchema.parse({
-      title: raw.title,
-      day_of_week: raw.day_of_week,
-      venue_name: raw.venue_name,
-      venue_address: raw.venue_address,
-      website_url: raw.website_url,
-      notes: raw.notes,
-      price: raw.price,
-      is_active: raw.is_active,
-    });
+    const { supabase } = await requireAdmin();
 
-    const payload: Record<string, any> = {
-      title: parsed.title,
-      day_of_week: parsed.day_of_week,
-      venue_name: parsed.venue_name,
-      venue_address: parsed.venue_address,
-      updated_at: new Date().toISOString(),
-    };
+    // Read the body ONCE
+    const contentType = req.headers.get("content-type") || "";
+    const fields: Record<string, any> = {};
 
-    // Only set optional fields if present (don't violate NOT NULL cols)
-    if ('website_url' in raw) payload.website_url = parsed.website_url ?? null;
-    if ('notes' in raw) payload.notes = parsed.notes ?? null;
-    if ('price' in raw) {
-      const cents = priceToCentsMaybe(parsed.price);
-      if (cents !== undefined) payload.price_cents = cents;
+    if (contentType.includes("application/json")) {
+      Object.assign(fields, await req.json());
+    } else {
+      const fd = await req.formData();
+      fd.forEach((v, k) => (fields[k] = v));
     }
-    if ('is_active' in raw) payload.is_active = !!parsed.is_active;
 
-    const { error } = await admin.from('deals').update(payload).eq('id', id);
-    if (error) return backToEdit(req, id, error.message);
+    // Pull fields
+    const title = (fields.title ?? "").toString().trim();
+    const day_of_week = (fields.day_of_week ?? "").toString().toLowerCase() || null;
+    const is_active = ['on', 'true', '1', 'yes'].includes(String(fields.is_active ?? "true").toLowerCase());
+    const price_cents = toCents(fields.price ?? fields.price_cents);
+    const notes = fields.notes ? String(fields.notes).trim() || null : null;
 
-    return backToList(req);
-  } catch (err) {
-    if (err instanceof ZodError) {
-      return backToEdit(req, id, err.errors[0]?.message ?? 'Validation error');
+    // Get venue_id from form
+    let venue_id = fields.venue_id ? Number(fields.venue_id) : null;
+
+    if (!venue_id || Number.isNaN(venue_id)) {
+      const url = new URL(`/admin/${params.id}`, req.url);
+      url.searchParams.set('error', 'venue_id is required');
+      return NextResponse.redirect(url, { status: 303 });
     }
-    console.error('PATCH failed:', err);
-    return backToEdit(req, id, 'Unexpected error while saving');
+
+    // Update the deal
+    const { error: updErr } = await supabase
+      .from("deals")
+      .update({ title, day_of_week, is_active, price_cents, notes, venue_id })
+      .eq("id", Number(params.id));
+
+    if (updErr) {
+      const url = new URL(`/admin/${params.id}`, req.url);
+      url.searchParams.set('error', updErr.message);
+      return NextResponse.redirect(url, { status: 303 });
+    }
+
+    return NextResponse.redirect(new URL("/admin?ok=1", req.url), { status: 303 });
+  } catch (e: any) {
+    console.error("PATCH /api/admin/deals/[id] failed:", e);
+    const url = new URL(`/admin/${params.id}`, req.url);
+    url.searchParams.set('error', e?.message ?? 'Internal error');
+    return NextResponse.redirect(url, { status: 303 });
+  }
+}
+
+// Support HTML forms with _method=PATCH or _action=delete
+export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
+  try {
+    const { supabase } = await requireAdmin();
+    
+    // Read body once
+    const contentType = req.headers.get("content-type") || "";
+    const fields: Record<string, any> = {};
+
+    if (contentType.includes("application/json")) {
+      Object.assign(fields, await req.json());
+    } else {
+      const fd = await req.formData();
+      fd.forEach((v, k) => (fields[k] = v));
+    }
+
+    const methodOverride = (fields._method ?? '').toString().toUpperCase();
+    const action = (fields._action ?? '').toString();
+
+    // Handle DELETE
+    if (action === 'delete' || methodOverride === 'DELETE') {
+      const { error } = await supabase.from('deals').delete().eq('id', Number(ctx.params.id));
+      
+      if (error) {
+        const url = new URL('/admin', req.url);
+        url.searchParams.set('error', error.message);
+        return NextResponse.redirect(url, { status: 303 });
+      }
+
+      const url = new URL('/admin', req.url);
+      url.searchParams.set('ok', '1');
+      return NextResponse.redirect(url, { status: 303 });
+    }
+
+    // Handle PATCH (default for form posts)
+    const title = (fields.title ?? "").toString().trim();
+    const day_of_week = (fields.day_of_week ?? "").toString().toLowerCase() || null;
+    const is_active = ['on', 'true', '1', 'yes'].includes(String(fields.is_active ?? "true").toLowerCase());
+    const price_cents = toCents(fields.price ?? fields.price_cents);
+    const notes = fields.notes ? String(fields.notes).trim() || null : null;
+
+    let venue_id = fields.venue_id ? Number(fields.venue_id) : null;
+
+    if (!venue_id || Number.isNaN(venue_id)) {
+      const url = new URL(`/admin/${ctx.params.id}`, req.url);
+      url.searchParams.set('error', 'venue_id is required');
+      return NextResponse.redirect(url, { status: 303 });
+    }
+
+    const { error: updErr } = await supabase
+      .from("deals")
+      .update({ title, day_of_week, is_active, price_cents, notes, venue_id })
+      .eq("id", Number(ctx.params.id));
+
+    if (updErr) {
+      const url = new URL(`/admin/${ctx.params.id}`, req.url);
+      url.searchParams.set('error', updErr.message);
+      return NextResponse.redirect(url, { status: 303 });
+    }
+
+    return NextResponse.redirect(new URL("/admin?ok=1", req.url), { status: 303 });
+  } catch (e: any) {
+    console.error("POST /api/admin/deals/[id] failed:", e);
+    const url = new URL(`/admin/${ctx.params.id}`, req.url);
+    url.searchParams.set('error', e?.message ?? 'Internal error');
+    return NextResponse.redirect(url, { status: 303 });
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase.from('deals').delete().eq('id', Number(params.id));
+    
+    if (error) {
+      const url = new URL('/admin', req.url);
+      url.searchParams.set('error', error.message);
+      return NextResponse.redirect(url, { status: 303 });
+    }
+
+    const url = new URL('/admin', req.url);
+    url.searchParams.set('ok', '1');
+    return NextResponse.redirect(url, { status: 303 });
+  } catch (e: any) {
+    console.error("DELETE /api/admin/deals/[id] failed:", e);
+    const url = new URL('/admin', req.url);
+    url.searchParams.set('error', e?.message ?? 'Internal error');
+    return NextResponse.redirect(url, { status: 303 });
   }
 }

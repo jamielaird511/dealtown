@@ -1,31 +1,41 @@
-import { fetchFuelPrices } from "@/lib/fetchers";
-import { formatDollarsFromCents, labelProduct } from "@/lib/format";
+import { fetchFuelStations, type FuelRow, moneyFromCents } from "@/lib/data";
 
 export default async function FuelPrices() {
-  const prices = await fetchFuelPrices();
-  
-  if (!prices?.length) return null;
+  const prices: FuelRow[] = await fetchFuelStations();
+
+  if (!prices?.length) {
+    return (
+      <div className="rounded-xl border bg-white p-4 text-sm text-gray-600">
+        No fuel prices available.
+      </div>
+    );
+  }
 
   return (
-    <section className="mt-4 mb-6">
-      <div className="container mx-auto max-w-5xl px-4">
-        <h2 className="text-lg font-semibold mb-3">Fuel Prices</h2>
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
-          {prices.map((p, idx) => (
-            <div
-              key={`${p.product}-${p.brand}-${idx}`}
-              className="flex-shrink-0 whitespace-nowrap rounded-full border bg-white px-4 py-2 text-sm shadow-sm hover:shadow-md transition-shadow"
-            >
-              <span className="font-bold text-primary">{labelProduct(p.product)}</span>
-              <span className="mx-2 font-semibold">{formatDollarsFromCents(p.price_cents)}</span>
-              <span className="text-muted-foreground">
-                • {p.brand} {p.venue_suburb}
-              </span>
-            </div>
-          ))}
-        </div>
+    <div className="rounded-xl border bg-white">
+      <div className="p-4 border-b">
+        <h2 className="font-semibold">Fuel Prices</h2>
       </div>
-    </section>
+      <div className="divide-y">
+        {prices.map((p: FuelRow, idx: number) => (
+          <div key={`${p.station_id}-${p.fuel}-${idx}`} className="p-4 flex items-center justify-between">
+            <div>
+              <div className="font-medium">{p.name ?? "Station"}</div>
+              <div className="text-xs text-gray-500">{p.fuel}</div>
+            </div>
+            <div className="text-right">
+              <div className="font-semibold">
+                {p.price_cents != null ? `$${moneyFromCents(p.price_cents)}` : "—"}
+              </div>
+              {p.observed_at && (
+                <div className="text-xs text-gray-400">
+                  {new Date(p.observed_at).toLocaleString()}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
-
