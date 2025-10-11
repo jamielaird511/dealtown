@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
+import Link from 'next/link';
 
 const dayEnum = z.enum(['monday','tuesday','wednesday','thursday','friday','saturday','sunday']);
 
