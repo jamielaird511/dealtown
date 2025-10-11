@@ -1,56 +1,24 @@
-export interface Venue {
-  id: string;
-  name: string;
-  address: string;
-  city: string;
-  state: string;
-  zip_code: string;
-  phone?: string;
-  website?: string;
-  category: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Deal {
-  id: string;
-  venue_id: string;
-  title: string;
-  description: string;
-  deal_type: string;
-  day_of_week?: number;
-  start_time?: string;
-  end_time?: string;
-  price_cents?: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  venue?: Venue;
-}
-
-export interface FuelPrice {
-  product: string;         // e.g. '91', '95', 'diesel'
-  price_cents: number;     // integer cents
-  observed_at: string;     // timestamp
-  brand: string;           // BP, Z, Mobil
-  venue_name: string;      // station name
-  venue_suburb: string;    // suburb (Frankton, Arrowtown)
-}
-
-export interface DealSubmission {
+export type Deal = {
   id: number;
-  venue_name: string;
-  venue_suburb?: string;
   title: string;
-  description?: string;
-  price_cents?: number;
-  day_of_week?: number;
-  start_time?: string;
-  end_time?: string;
-  contact?: string;
-  source: string;
+  day_of_week: string;    // 'monday'...'sunday' (lowercase)
+  is_active: boolean;
+  venue_name: string;
+  venue_address: string;
+  website_url?: string | null;
+  notes?: string | null;
+  price_cents?: number | null;
   created_at: string;
-  approved_at?: string;
-  approved_by?: string;
-}
+  updated_at: string | null;
+  created_by?: string | null;
+};
 
+export type DealInput = Omit<Deal, 'id'|'created_at'|'updated_at'|'created_by'>;
+
+export type FuelRow = {
+  station_id: number;
+  name: string | null;
+  fuel: string;
+  price_cents: number | null;
+  observed_at: string | null;
+};

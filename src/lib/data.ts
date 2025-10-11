@@ -1,5 +1,6 @@
 // src/lib/data.ts
 import { supabase } from "./supabaseClient";
+import { moneyFromCents as formatMoney } from "./money";
 
 export type Deal = {
   id: number;
@@ -19,10 +20,8 @@ export type FuelRow = {
   observed_at: string | null;
 };
 
-export function moneyFromCents(cents?: number | null): string {
-  if (cents == null) return "";
-  return `$${(cents / 100).toFixed(2)}`;
-}
+// Re-export for convenience
+export { moneyFromCents } from "./money";
 
 export async function fetchDeals(day?: string): Promise<Deal[]> {
   const d = (day ?? "today").toLowerCase();
