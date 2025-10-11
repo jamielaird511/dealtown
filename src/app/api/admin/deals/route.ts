@@ -14,11 +14,14 @@ const createDealSchema = z.object({
   website_url: z.string().url().optional().or(z.literal('')).transform(v => v || null),
   notes: z.string().max(1000).optional().or(z.literal('')).transform(v => v || null),
   price: z.string().optional(),
-  price_cents: z.number().int().nullable().optional(),
-}).transform((v) => ({
-  ...v,
-  price_cents: v.price_cents ?? centsFromMoney(v.price),
-}));
+}).transform((v) => {
+  // Convert price (dollars) to price_cents, then remove price field
+  const { price, ...rest } = v;
+  return {
+    ...rest,
+    price_cents: centsFromMoney(price),
+  };
+});
 
 const qSchema = z.object({
   day: z.string().optional(),
@@ -63,21 +66,45 @@ export async function GET(req: Request) {
   return NextResponse.json({ ok: true, data, count });
 }
 
+async function parseBody(req: Request) {
+  const ct = req.headers.get('content-type') ?? '';
+  if (ct.includes('application/json')) return req.json();
+  const fd = await req.formData();
+  return Object.fromEntries(fd.entries());
+}
+
 export async function POST(req: Request) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
   if (!rateOk(ip)) return NextResponse.json({ ok: false, message: 'Slow down' }, { status: 429 });
 
   const { supabase, user } = await requireAdmin();
 
-  const body = await req.json();
-  const parsed = createDealSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ ok: false, message: 'Invalid input', errors: parsed.error.flatten() }, { status: 400 });
+  const body = await parseBody(req);
+  
+  // Coerce checkbox
+  const rawData = {
+    ...body,
+    is_active: typeof body.is_active === 'string' ? body.is_active === 'on' : !!body.is_active,
+  };
 
-  const { data, error } = await supabase.from('deals')
-    .insert({ ...parsed.data, created_by: user.id })
-    .select()
-    .single();
+  const parsed = createDealSchema.safeParse(rawData);
+  if (!parsed.success) {
+    const msg = parsed.error.errors[0]?.message ?? 'Invalid input';
+    const url = new URL('/admin/new', req.url);
+    url.searchParams.set('error', msg);
+    return NextResponse.redirect(url, { status: 303 });
+  }
 
-  if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 });
-  return NextResponse.json({ ok: true, data });
+  const { error } = await supabase.from('deals')
+    .insert({ ...parsed.data, created_by: user.id });
+
+  if (error) {
+    const url = new URL('/admin/new', req.url);
+    url.searchParams.set('error', error.message);
+    return NextResponse.redirect(url, { status: 303 });
+  }
+
+  const url = new URL('/admin', req.url);
+  url.searchParams.set('ok', '1');
+  return NextResponse.redirect(url, { status: 303 });
 }

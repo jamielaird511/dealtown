@@ -51,7 +51,6 @@ const editSchema = z.object({
   venue_address: z.string().trim().min(1, 'Venue address is required'),
   website_url: z.string().trim().url('Website must be a valid URL').optional().or(z.literal('')),
   notes: z.string().trim().optional(),
-  price: z.string().trim().optional(),
   is_active: z.union([z.boolean(), z.string()]).optional(),
 });
 
@@ -121,7 +120,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       venue_address: raw.venue_address,
       website_url: raw.website_url,
       notes: raw.notes,
-      price: raw.price,
       is_active: raw.is_active,
     });
 
@@ -136,8 +134,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     // Only set optional fields if present (don't violate NOT NULL cols)
     if ('website_url' in raw) payload.website_url = parsed.website_url ?? null;
     if ('notes' in raw) payload.notes = parsed.notes ?? null;
+    // Convert price (dollars) to price_cents (integer)
     if ('price' in raw) {
-      const cents = priceToCentsMaybe(parsed.price);
+      const cents = priceToCentsMaybe(raw.price as string);
       if (cents !== undefined) payload.price_cents = cents;
     }
     if ('is_active' in raw) payload.is_active = !!parsed.is_active;
@@ -145,7 +144,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const { error } = await admin.from('deals').update(payload).eq('id', id);
     if (error) return backToEdit(req, id, error.message);
 
-    return backToList(req);
+    const url = new URL('/admin', req.url);
+    url.searchParams.set('ok', '1');
+    return NextResponse.redirect(url, { status: 303 });
   } catch (err) {
     if (err instanceof ZodError) {
       return backToEdit(req, id, err.errors[0]?.message ?? 'Validation error');

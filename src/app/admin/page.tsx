@@ -5,7 +5,7 @@ import { moneyFromCents } from '@/lib/money';
 import { ActiveToggle } from '@/components/ActiveToggle';
 import { DeleteButton } from '@/components/DeleteButton';
 
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: { searchParams?: { ok?: string; error?: string } }) {
   const { user, supabase } = await requireAdmin();
 
   const { data: deals } = await supabase
@@ -16,6 +16,18 @@ export default async function AdminPage() {
 
   return (
     <main className="p-6 space-y-4 max-w-7xl mx-auto">
+      {/* Success/Error Messages */}
+      {searchParams?.ok === '1' && (
+        <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-green-800">
+          Success! Changes saved.
+        </div>
+      )}
+      {searchParams?.error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-red-800">
+          {searchParams.error}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Admin</h1>

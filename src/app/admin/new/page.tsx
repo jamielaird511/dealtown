@@ -1,160 +1,109 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { z } from 'zod';
 import Link from 'next/link';
-
-const dayEnum = z.enum(['monday','tuesday','wednesday','thursday','friday','saturday','sunday']);
-
-const formSchema = z.object({
-  title: z.string().min(2, 'Title required'),
-  day_of_week: dayEnum,
-  venue_name: z.string().min(2, 'Venue name required'),
-  venue_address: z.string().min(2, 'Address required'),
-  website_url: z.string().url('Invalid URL').optional().or(z.literal('')),
-  notes: z.string().max(1000).optional(),
-  price: z.string().optional(),
-  is_active: z.boolean().default(true),
-});
+import { useSearchParams } from 'next/navigation';
 
 export default function NewDealPage() {
-  const router = useRouter();
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setErrors({});
-    setSubmitting(true);
-
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      title: formData.get('title') as string,
-      day_of_week: formData.get('day_of_week') as string,
-      venue_name: formData.get('venue_name') as string,
-      venue_address: formData.get('venue_address') as string,
-      website_url: formData.get('website_url') as string,
-      notes: formData.get('notes') as string,
-      price: formData.get('price') as string,
-      is_active: formData.get('is_active') === 'on',
-    };
-
-    const parsed = formSchema.safeParse(data);
-    if (!parsed.success) {
-      const errs: Record<string, string> = {};
-      parsed.error.errors.forEach(e => { errs[e.path[0]] = e.message; });
-      setErrors(errs);
-      setSubmitting(false);
-      return;
-    }
-
-    const res = await fetch('/api/admin/deals', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(parsed.data),
-    });
-
-    setSubmitting(false);
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}));
-      alert(json.message || 'Failed to create deal');
-      return;
-    }
-
-    router.push('/admin');
-  }
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error');
 
   return (
     <main className="p-6 max-w-xl mx-auto">
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">New Deal</h1>
+        <Link href="/admin" className="text-sm text-gray-600 hover:underline">Back</Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-4 text-red-800">
+          {error}
+        </div>
+      )}
+
+      <form action="/api/admin/deals" method="post" className="space-y-4">
         <div>
+          <label className="block text-sm mb-1">Title</label>
           <input
             name="title"
             required
-            placeholder="Title"
+            placeholder="e.g., 2-for-1 Pizza Night"
             className="w-full rounded-xl border px-4 py-3"
           />
-          {errors.title && <p className="text-sm text-red-600 mt-1">{errors.title}</p>}
         </div>
 
         <div>
+          <label className="block text-sm mb-1">Day of week</label>
           <select name="day_of_week" required className="w-full rounded-xl border px-4 py-3">
             {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(d => (
               <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
             ))}
           </select>
-          {errors.day_of_week && <p className="text-sm text-red-600 mt-1">{errors.day_of_week}</p>}
         </div>
 
         <div>
+          <label className="block text-sm mb-1">Venue name</label>
           <input
             name="venue_name"
             required
-            placeholder="Venue name"
+            placeholder="e.g., Pizza Palace"
             className="w-full rounded-xl border px-4 py-3"
           />
-          {errors.venue_name && <p className="text-sm text-red-600 mt-1">{errors.venue_name}</p>}
         </div>
 
         <div>
+          <label className="block text-sm mb-1">Venue address</label>
           <input
             name="venue_address"
             required
-            placeholder="Venue address"
+            placeholder="e.g., 123 Main St, Queenstown"
             className="w-full rounded-xl border px-4 py-3"
           />
-          {errors.venue_address && <p className="text-sm text-red-600 mt-1">{errors.venue_address}</p>}
         </div>
 
         <div>
+          <label className="block text-sm mb-1">Website URL (optional)</label>
           <input
             name="website_url"
             type="url"
             placeholder="https://example.com"
             className="w-full rounded-xl border px-4 py-3"
           />
-          {errors.website_url && <p className="text-sm text-red-600 mt-1">{errors.website_url}</p>}
         </div>
 
         <div>
+          <label className="block text-sm mb-1">Notes (optional)</label>
           <textarea
             name="notes"
-            placeholder="Notes (optional)"
+            placeholder="Additional details..."
             rows={3}
             className="w-full rounded-xl border px-4 py-3"
           />
-          {errors.notes && <p className="text-sm text-red-600 mt-1">{errors.notes}</p>}
         </div>
 
         <div>
+          <label className="block text-sm mb-1">Price</label>
           <input
             name="price"
             type="text"
-            placeholder="Price (e.g., 12.50)"
+            placeholder="12.50"
             className="w-full rounded-xl border px-4 py-3"
           />
-          <p className="text-xs text-gray-500 mt-1">Enter as dollars (e.g., &quot;12&quot; or &quot;12.50&quot;)</p>
-          {errors.price && <p className="text-sm text-red-600 mt-1">{errors.price}</p>}
+          <p className="text-xs text-gray-500 mt-1">Enter as dollars (e.g., &quot;12&quot; or &quot;12.50&quot;). Leave blank for free/TBD.</p>
         </div>
 
         <label className="flex items-center gap-2">
           <input type="checkbox" name="is_active" defaultChecked />
-          <span className="text-sm">Active</span>
+          <span className="text-sm">Active (visible on homepage)</span>
         </label>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 pt-2">
           <button
             type="submit"
-            disabled={submitting}
-            className="rounded-xl bg-orange-500 px-4 py-3 text-white font-medium disabled:opacity-50"
+            className="rounded-xl bg-orange-500 px-4 py-3 text-white font-medium"
           >
-            {submitting ? 'Creating…' : 'Create Deal'}
+            Create Deal
           </button>
-          <Link href="/admin" className="rounded-xl border px-4 py-3 text-gray-700">
+          <Link href="/admin" className="rounded-xl border px-4 py-3 text-gray-700 inline-flex items-center">
             Cancel
           </Link>
         </div>

@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default async function EditDealPage({ params }: { params: { id: string } }) {
+export default async function EditDealPage({ params, searchParams }: { params: { id: string }; searchParams?: { error?: string } }) {
   const { supabase } = await requireAdmin();
 
   const id = Number(params.id);
@@ -27,6 +27,13 @@ export default async function EditDealPage({ params }: { params: { id: string } 
         <h1 className="text-2xl font-semibold">Edit deal</h1>
         <Link href="/admin" className="text-sm text-gray-600 hover:underline">Back</Link>
       </div>
+
+      {/* Error Message */}
+      {searchParams?.error && (
+        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-4 text-red-800">
+          {searchParams.error}
+        </div>
+      )}
 
       <form
         action={`/api/admin/deals/${deal.id}`}
