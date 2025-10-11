@@ -5,6 +5,7 @@ export const revalidate = 0;
 import Link from "next/link";
 import { fetchDeals, fetchFuelStations } from "@/lib/data";
 import DealCard from "@/components/DealCard";
+import TodayHappyHourSection from "@/components/TodayHappyHourSection";
 
 function moneyFromCents(c: number | null | undefined) {
   if (c == null) return "N/A";
@@ -153,6 +154,9 @@ export default async function Home({
           )}
         </div>
       </section>
+
+      {/* Happy Hours */}
+      <TodayHappyHourSection />
     </main>
   );
 }
