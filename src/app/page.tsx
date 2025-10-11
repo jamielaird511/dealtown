@@ -4,6 +4,7 @@ export const revalidate = 0;
 
 import Link from "next/link";
 import { fetchDeals, fetchFuelStations } from "@/lib/data";
+import DealCard from "@/components/DealCard";
 
 function moneyFromCents(c: number | null | undefined) {
   if (c == null) return "N/A";
@@ -123,19 +124,13 @@ export default async function Page({
           </ul>
         </div>
 
-        {deals.length === 0 ? (
-          <p className="text-sm text-gray-500">No deals for {selectedDay === "today" ? "today" : selectedDay}.</p>
-        ) : (
-          <ul className="space-y-3">
-            {deals.map((d) => (
-              <li key={d.id} className="rounded-lg border p-3 hover:bg-gray-50">
-                <div className="flex items-start justify-between">
-                  <p className="font-medium">{d.title}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="mt-4 grid gap-3">
+          {deals.length === 0 ? (
+            <p className="text-black/60">No deals for {selectedDay}.</p>
+          ) : (
+            deals.map((d) => <DealCard key={d.id} deal={d} />)
+          )}
+        </div>
       </section>
     </main>
   );

@@ -1,76 +1,84 @@
+// src/components/DealCard.tsx
 "use client";
-import { Clock, MapPin, Share2, MapPinned } from "lucide-react";
 
-export interface DealCardProps {
-  title: string;
-  priceCents?: number | null;
-  venue: string;
-  suburb?: string | null;
-  description?: string | null;
-  window?: string | null; // e.g., "Fri 4:00–6:00 PM"
-}
+import { ExternalLink, Share2 } from "lucide-react";
+import { moneyFromCents } from "@/lib/data";
 
-function dollars(cents?: number | null) {
-  if (cents == null || cents === 0) return "";
-  return `$${(cents / 100).toFixed(2)}`;
-}
+export type DealCardProps = {
+  deal: {
+    id: number;
+    title: string;
+    venue_name?: string | null;
+    venue_address?: string | null;
+    notes?: string | null;
+    website_url?: string | null;
+    price_cents?: number | null;
+  };
+};
 
-export default function DealCard({
-  title,
-  priceCents,
-  venue,
-  suburb,
-  description,
-  window,
-}: DealCardProps) {
-  const price = dollars(priceCents);
-  const shareText = `${title}${price ? ` — ${price}` : ""} @ ${venue}${suburb ? `, ${suburb}` : ""}${window ? ` • ${window}` : ""}`;
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${venue} ${suburb || ""}`)}`;
+export default function DealCard({ deal }: DealCardProps) {
+  const onShare = async () => {
+    const text = `${deal.title}${deal.venue_name ? ` @ ${deal.venue_name}` : ""}${
+      deal.price_cents != null ? ` — ${moneyFromCents(deal.price_cents)}` : ""
+    }`;
+    const url = typeof window !== "undefined" ? window.location.href : "";
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "DealTown", text, url });
+      } else {
+        await navigator.clipboard.writeText(`${text}\n${url}`);
+        alert("Copied to clipboard!");
+      }
+    } catch {
+      // no-op if user cancels
+    }
+  };
 
   return (
-    <article className="card card-hover p-4">
+    <article className="rounded-xl border bg-white/70 shadow-sm p-4 flex flex-col gap-2 hover:bg-neutral-50 transition">
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-base font-semibold leading-snug">{title}</h3>
-        {price ? <span className="badge-price">{price}</span> : null}
-      </div>
-
-      <div className="mt-1 flex items-center gap-1 text-sm muted">
-        <MapPin className="h-4 w-4" />
-        <span className="truncate">
-          {venue} {suburb ? <span className="opacity-70">• {suburb}</span> : null}
-        </span>
-      </div>
-
-      {description ? (
-        <p className="mt-2 text-sm text-neutral-700 line-clamp-2">{description}</p>
-      ) : null}
-
-      {window ? (
-        <div className="mt-3 flex items-center gap-2 text-sm text-neutral-700">
-          <Clock className="h-4 w-4" />
-          <span className="truncate">{window}</span>
+        <div className="min-w-0">
+          {deal.venue_name && (
+            <h3 className="font-semibold text-lg truncate">{deal.venue_name}</h3>
+          )}
+          {deal.venue_address && (
+            <p className="text-sm text-black/60 truncate">{deal.venue_address}</p>
+          )}
         </div>
-      ) : null}
+        {deal.price_cents != null && (
+          <span className="shrink-0 text-orange-600 font-semibold">
+            {moneyFromCents(deal.price_cents)}
+          </span>
+        )}
+      </div>
 
-      <div className="mt-3 flex gap-2">
+      <p className="text-[15px]">{deal.title}</p>
+
+      {deal.notes && (
+        <p className="text-sm text-black/70">{deal.notes}</p>
+      )}
+
+      <div className="mt-1 flex items-center gap-3">
+        {deal.website_url && (
+          <a
+            href={deal.website_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sm text-black/70 hover:text-black underline"
+          >
+            <ExternalLink size={16} />
+            Website
+          </a>
+        )}
         <button
-          onClick={() => navigator.clipboard.writeText(shareText)}
-          className="btn"
-          aria-label="Share deal"
+          onClick={onShare}
+          className="ml-auto inline-flex items-center gap-1 text-sm rounded-full px-3 py-1 border hover:bg-neutral-100"
+          type="button"
         >
-          <Share2 className="h-3.5 w-3.5" />
+          <Share2 size={16} />
           Share
         </button>
-        <a
-          href={mapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn"
-          aria-label="Open in maps"
-        >
-          <MapPinned className="h-3.5 w-3.5" />
-          Maps
-        </a>
       </div>
     </article>
   );

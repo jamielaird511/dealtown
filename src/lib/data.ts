@@ -5,6 +5,10 @@ export type Deal = {
   id: number;
   title: string;
   venue_name?: string | null;
+  venue_address?: string | null;
+  notes?: string | null;
+  website_url?: string | null;
+  price_cents?: number | null;
 };
 
 export type FuelRow = {
@@ -15,14 +19,19 @@ export type FuelRow = {
   observed_at: string | null;
 };
 
+export function moneyFromCents(cents?: number | null): string {
+  if (cents == null) return "";
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
 export async function fetchDeals(day?: string): Promise<Deal[]> {
   const d = (day ?? "today").toLowerCase();
 
   if (d === "today") {
     const { data, error } = await supabase
       .from("today_active_deals")    // view
-      .select("id,title")
-      .order("id", { ascending: true });
+      .select("id,title,venue_name,venue_address,notes,website_url,price_cents")
+      .order("price_cents", { ascending: true, nullsLast: true });
     if (error) {
       console.error("[deals:today]", error);
       return [];
@@ -33,16 +42,16 @@ export async function fetchDeals(day?: string): Promise<Deal[]> {
   // Weekday path — table
   const { data, error } = await supabase
     .from("deals")
-    .select("id,title,day_of_week,is_active") // ← no venue_name here
+    .select("id,title,venue_name,venue_address,notes,website_url,price_cents,day_of_week,is_active")
     .eq("is_active", true)
     .eq("day_of_week", d)
-    .order("id", { ascending: true });
+    .order("price_cents", { ascending: true, nullsLast: true });
 
   if (error) {
     console.error("[deals:weekday]", d, error);
     return [];
   }
-  return (data ?? []).map(({ id, title }) => ({ id, title }));
+  return data ?? [];
 }
 
 // existing fuel fetcher (already pointing at the compact view)
