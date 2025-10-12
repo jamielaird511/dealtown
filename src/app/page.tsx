@@ -17,30 +17,32 @@ function FuelBadge({ fuel }: { fuel: string }) {
 }
 
 const DAYS: { label: string; value: string }[] = [
-  { label: 'Today', value: 'today' },
-  { label: 'Mon',   value: 'monday' },
-  { label: 'Tue',   value: 'tuesday' },
-  { label: 'Wed',   value: 'wednesday' },
-  { label: 'Thu',   value: 'thursday' },
-  { label: 'Fri',   value: 'friday' },
-  { label: 'Sat',   value: 'saturday' },
-  { label: 'Sun',   value: 'sunday' },
+  { label: "Today", value: "today" },
+  { label: "Mon", value: "monday" },
+  { label: "Tue", value: "tuesday" },
+  { label: "Wed", value: "wednesday" },
+  { label: "Thu", value: "thursday" },
+  { label: "Fri", value: "friday" },
+  { label: "Sat", value: "saturday" },
+  { label: "Sun", value: "sunday" },
 ];
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams?: { day?: string };
-}) {
+export default async function Home({ searchParams }: { searchParams?: { day?: string } }) {
   const dayParam = searchParams?.day;
-  const selectedDay = (dayParam ?? 'today').toLowerCase();
+  const selectedDay = (dayParam ?? "today").toLowerCase();
+  const daySlug = dayParam ?? "today"; // Pass to Happy Hour section
 
-  console.log('[page] dayParam =', dayParam, 'selectedDay =', selectedDay);
+  console.log("[page] dayParam =", dayParam, "selectedDay =", selectedDay);
 
   const deals = await fetchDeals(dayParam);
   const fuel = await fetchFuelStations();
 
-  console.log('[page] deals count =', deals?.length, 'titles =', deals?.map(d => d.title));
+  console.log(
+    "[page] deals count =",
+    deals?.length,
+    "titles =",
+    deals?.map((d) => d.title)
+  );
 
   const grouped = fuel.reduce<Record<string, typeof fuel>>((acc, row) => {
     const key = row.name ?? `Station ${row.station_id}`;
@@ -57,8 +59,8 @@ export default async function Home({
             <h1 className="text-3xl font-semibold tracking-tight brand-title">DealTown</h1>
             <p className="mt-1 text-sm text-gray-500">Today's deals and local fuel prices</p>
           </div>
-          <Link 
-            href="/venues" 
+          <Link
+            href="/venues"
             className="text-sm text-gray-600 hover:text-orange-500 transition underline"
           >
             Browse Venues
@@ -118,12 +120,12 @@ export default async function Home({
 
           {/* Day buttons */}
           <ul className="flex gap-2 flex-wrap">
-            {DAYS.map(d => {
+            {DAYS.map((d) => {
               const active = selectedDay === d.value;
               return (
                 <a
                   key={d.value}
-                  href={`/?day=${d.value}#deals`}        
+                  href={`/?day=${d.value}#deals`}
                   className={
                     active
                       ? "rounded-full px-3 py-1 bg-brand text-brandFg shadow border-brand"
@@ -143,11 +145,13 @@ export default async function Home({
             DEBUG: deals.length = {deals?.length ?? 0}
             {deals && deals.length > 0 && ` | First: ${deals[0]?.title}`}
           </pre>
-          
+
           {/* ✅ Use the deals we just fetched. DO NOT shadow with another variable */}
           {deals && deals.length > 0 ? (
             <div className="grid gap-3">
-              {deals.map((d) => <DealCard key={d.id} deal={d} />)}
+              {deals.map((d) => (
+                <DealCard key={d.id} deal={d} />
+              ))}
             </div>
           ) : (
             <p className="text-black/60">No deals for {selectedDay}.</p>
@@ -156,7 +160,7 @@ export default async function Home({
       </section>
 
       {/* Happy Hours */}
-      <TodayHappyHourSection />
+      <TodayHappyHourSection daySlug={daySlug} />
     </main>
   );
 }

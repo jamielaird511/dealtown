@@ -1,12 +1,17 @@
 export type DaySlug =
-  | "monday" | "tuesday" | "wednesday"
-  | "thursday" | "friday" | "saturday" | "sunday";
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
 
-export type Venue = { 
-  id: number; 
-  name: string; 
-  address?: string | null; 
-  website_url?: string | null; 
+export type Venue = {
+  id: number;
+  name: string;
+  address?: string | null;
+  website_url?: string | null;
 };
 
 export type DealSubmission = {
@@ -34,9 +39,9 @@ export type DealSubmission = {
   end_time?: string | null;
 
   // Timestamps / metadata
-  created_at: string;          // ISO date-time
+  created_at: string; // ISO date-time
   submitted_by?: string | null; // email or uid if you store it
-} & Record<string, unknown>;    // <-- allows any extra fields the page may read
+} & Record<string, unknown>; // <-- allows any extra fields the page may read
 
 export type Deal = {
   id: number;
@@ -45,8 +50,8 @@ export type Deal = {
   is_active: boolean;
   venue_id: number;
   venue?: Venue;
-  venue_name?: string;     // For display (from joined query)
-  venue_address?: string;  // For display (from joined query)
+  venue_name?: string; // For display (from joined query)
+  venue_address?: string; // For display (from joined query)
   website_url?: string | null;
   notes?: string | null;
   price_cents?: number | null;
@@ -61,7 +66,7 @@ export type DealFormInput = {
   is_active: boolean;
   price_cents?: number | null;
   notes?: string | null;
-  venue_id: number;    // <- Admin selects from dropdown
+  venue_id: number; // <- Admin selects from dropdown
 };
 
 export type FuelRow = {

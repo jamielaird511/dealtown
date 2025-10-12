@@ -2,7 +2,7 @@ import { requireAdmin } from "@/lib/auth";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function EditVenuePage({ params }: { params: { id: string } }) {
   const id = Number(params.id);
@@ -49,18 +49,35 @@ export default async function EditVenuePage({ params }: { params: { id: string }
       <form action={updateVenue} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Name *</label>
-          <input name="name" defaultValue={venue.name ?? ""} required className="w-full rounded border px-3 py-2" />
+          <input
+            name="name"
+            defaultValue={venue.name ?? ""}
+            required
+            className="w-full rounded border px-3 py-2"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Address</label>
-          <input name="address" defaultValue={venue.address ?? ""} className="w-full rounded border px-3 py-2" />
+          <input
+            name="address"
+            defaultValue={venue.address ?? ""}
+            className="w-full rounded border px-3 py-2"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Website URL</label>
-          <input name="website_url" defaultValue={venue.website_url ?? ""} type="url" className="w-full rounded border px-3 py-2" />
+          <input
+            name="website_url"
+            defaultValue={venue.website_url ?? ""}
+            type="url"
+            className="w-full rounded border px-3 py-2"
+          />
         </div>
         <div className="flex gap-3">
-          <button type="submit" className="rounded bg-orange-500 text-white px-4 py-2 hover:bg-orange-600">
+          <button
+            type="submit"
+            className="rounded bg-orange-500 text-white px-4 py-2 hover:bg-orange-600"
+          >
             Save Changes
           </button>
           <Link href="/admin/venues" className="rounded border px-4 py-2 hover:bg-gray-50">

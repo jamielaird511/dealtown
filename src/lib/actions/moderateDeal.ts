@@ -112,4 +112,3 @@ export async function approveDeal(submissionId: number): Promise<ApproveDealResu
     return { success: false, error: "An unexpected error occurred" };
   }
 }
-

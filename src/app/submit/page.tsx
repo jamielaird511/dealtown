@@ -183,7 +183,8 @@ export default function SubmitPage() {
                   type="text"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Leave blank if not applicable. Enter as dollars (e.g., &quot;12&quot; or &quot;12.99&quot;)
+                  Leave blank if not applicable. Enter as dollars (e.g., &quot;12&quot; or
+                  &quot;12.99&quot;)
                 </p>
               </div>
 
@@ -283,4 +284,3 @@ export default function SubmitPage() {
     </div>
   );
 }
-

@@ -28,7 +28,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // Pull fields
     const title = (fields.title ?? "").toString().trim();
     const day_of_week = (fields.day_of_week ?? "").toString().toLowerCase() || null;
-    const is_active = ['on', 'true', '1', 'yes'].includes(String(fields.is_active ?? "true").toLowerCase());
+    const is_active = ["on", "true", "1", "yes"].includes(
+      String(fields.is_active ?? "true").toLowerCase()
+    );
     const price_cents = toCents(fields.price ?? fields.price_cents);
     const notes = fields.notes ? String(fields.notes).trim() || null : null;
 
@@ -37,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     if (!venue_id || Number.isNaN(venue_id)) {
       const url = new URL(`/admin/${params.id}`, req.url);
-      url.searchParams.set('error', 'venue_id is required');
+      url.searchParams.set("error", "venue_id is required");
       return NextResponse.redirect(url, { status: 303 });
     }
 
@@ -49,7 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     if (updErr) {
       const url = new URL(`/admin/${params.id}`, req.url);
-      url.searchParams.set('error', updErr.message);
+      url.searchParams.set("error", updErr.message);
       return NextResponse.redirect(url, { status: 303 });
     }
 
@@ -57,7 +59,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   } catch (e: any) {
     console.error("PATCH /api/admin/deals/[id] failed:", e);
     const url = new URL(`/admin/${params.id}`, req.url);
-    url.searchParams.set('error', e?.message ?? 'Internal error');
+    url.searchParams.set("error", e?.message ?? "Internal error");
     return NextResponse.redirect(url, { status: 303 });
   }
 }
@@ -66,7 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
   try {
     const { supabase } = await requireAdmin();
-    
+
     // Read body once
     const contentType = req.headers.get("content-type") || "";
     const fields: Record<string, any> = {};
@@ -78,28 +80,30 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
       fd.forEach((v, k) => (fields[k] = v));
     }
 
-    const methodOverride = (fields._method ?? '').toString().toUpperCase();
-    const action = (fields._action ?? '').toString();
+    const methodOverride = (fields._method ?? "").toString().toUpperCase();
+    const action = (fields._action ?? "").toString();
 
     // Handle DELETE
-    if (action === 'delete' || methodOverride === 'DELETE') {
-      const { error } = await supabase.from('deals').delete().eq('id', Number(ctx.params.id));
-      
+    if (action === "delete" || methodOverride === "DELETE") {
+      const { error } = await supabase.from("deals").delete().eq("id", Number(ctx.params.id));
+
       if (error) {
-        const url = new URL('/admin', req.url);
-        url.searchParams.set('error', error.message);
+        const url = new URL("/admin", req.url);
+        url.searchParams.set("error", error.message);
         return NextResponse.redirect(url, { status: 303 });
       }
 
-      const url = new URL('/admin', req.url);
-      url.searchParams.set('ok', '1');
+      const url = new URL("/admin", req.url);
+      url.searchParams.set("ok", "1");
       return NextResponse.redirect(url, { status: 303 });
     }
 
     // Handle PATCH (default for form posts)
     const title = (fields.title ?? "").toString().trim();
     const day_of_week = (fields.day_of_week ?? "").toString().toLowerCase() || null;
-    const is_active = ['on', 'true', '1', 'yes'].includes(String(fields.is_active ?? "true").toLowerCase());
+    const is_active = ["on", "true", "1", "yes"].includes(
+      String(fields.is_active ?? "true").toLowerCase()
+    );
     const price_cents = toCents(fields.price ?? fields.price_cents);
     const notes = fields.notes ? String(fields.notes).trim() || null : null;
 
@@ -107,7 +111,7 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
 
     if (!venue_id || Number.isNaN(venue_id)) {
       const url = new URL(`/admin/${ctx.params.id}`, req.url);
-      url.searchParams.set('error', 'venue_id is required');
+      url.searchParams.set("error", "venue_id is required");
       return NextResponse.redirect(url, { status: 303 });
     }
 
@@ -118,7 +122,7 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
 
     if (updErr) {
       const url = new URL(`/admin/${ctx.params.id}`, req.url);
-      url.searchParams.set('error', updErr.message);
+      url.searchParams.set("error", updErr.message);
       return NextResponse.redirect(url, { status: 303 });
     }
 
@@ -126,7 +130,7 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
   } catch (e: any) {
     console.error("POST /api/admin/deals/[id] failed:", e);
     const url = new URL(`/admin/${ctx.params.id}`, req.url);
-    url.searchParams.set('error', e?.message ?? 'Internal error');
+    url.searchParams.set("error", e?.message ?? "Internal error");
     return NextResponse.redirect(url, { status: 303 });
   }
 }
@@ -134,21 +138,21 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { supabase } = await requireAdmin();
-    const { error } = await supabase.from('deals').delete().eq('id', Number(params.id));
-    
+    const { error } = await supabase.from("deals").delete().eq("id", Number(params.id));
+
     if (error) {
-      const url = new URL('/admin', req.url);
-      url.searchParams.set('error', error.message);
+      const url = new URL("/admin", req.url);
+      url.searchParams.set("error", error.message);
       return NextResponse.redirect(url, { status: 303 });
     }
 
-    const url = new URL('/admin', req.url);
-    url.searchParams.set('ok', '1');
+    const url = new URL("/admin", req.url);
+    url.searchParams.set("ok", "1");
     return NextResponse.redirect(url, { status: 303 });
   } catch (e: any) {
     console.error("DELETE /api/admin/deals/[id] failed:", e);
-    const url = new URL('/admin', req.url);
-    url.searchParams.set('error', e?.message ?? 'Internal error');
+    const url = new URL("/admin", req.url);
+    url.searchParams.set("error", e?.message ?? "Internal error");
     return NextResponse.redirect(url, { status: 303 });
   }
 }

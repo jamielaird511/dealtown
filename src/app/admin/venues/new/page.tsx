@@ -33,18 +33,35 @@ export default async function NewVenuePage() {
       <form action={createVenue} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Name *</label>
-          <input name="name" required className="w-full rounded border px-3 py-2" placeholder="e.g. Atlas Beer Café" />
+          <input
+            name="name"
+            required
+            className="w-full rounded border px-3 py-2"
+            placeholder="e.g. Atlas Beer Café"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Address</label>
-          <input name="address" className="w-full rounded border px-3 py-2" placeholder="e.g. Steamer Wharf, Queenstown" />
+          <input
+            name="address"
+            className="w-full rounded border px-3 py-2"
+            placeholder="e.g. Steamer Wharf, Queenstown"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Website URL</label>
-          <input name="website_url" type="url" className="w-full rounded border px-3 py-2" placeholder="e.g. https://example.com" />
+          <input
+            name="website_url"
+            type="url"
+            className="w-full rounded border px-3 py-2"
+            placeholder="e.g. https://example.com"
+          />
         </div>
         <div className="flex gap-3">
-          <button type="submit" className="rounded bg-orange-500 text-white px-4 py-2 hover:bg-orange-600">
+          <button
+            type="submit"
+            className="rounded bg-orange-500 text-white px-4 py-2 hover:bg-orange-600"
+          >
             Save Venue
           </button>
           <Link href="/admin/venues" className="rounded border px-4 py-2 hover:bg-gray-50">

@@ -18,7 +18,10 @@ export default async function FuelPrices() {
       </div>
       <div className="divide-y">
         {prices.map((p: FuelRow, idx: number) => (
-          <div key={`${p.station_id}-${p.fuel}-${idx}`} className="p-4 flex items-center justify-between">
+          <div
+            key={`${p.station_id}-${p.fuel}-${idx}`}
+            className="p-4 flex items-center justify-between"
+          >
             <div>
               <div className="font-medium">{p.name ?? "Station"}</div>
               <div className="text-xs text-gray-500">{p.fuel}</div>

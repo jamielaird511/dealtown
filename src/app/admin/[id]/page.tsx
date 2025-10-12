@@ -1,13 +1,13 @@
-import { requireAdmin } from '@/lib/auth';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { requireAdmin } from "@/lib/auth";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-export default async function EditDealPage({ 
+export default async function EditDealPage({
   params,
-  searchParams 
-}: { 
+  searchParams,
+}: {
   params: { id: string };
   searchParams?: { error?: string };
 }) {
@@ -16,18 +16,20 @@ export default async function EditDealPage({
   if (!Number.isFinite(id)) notFound();
 
   const { data: deal } = await supabase
-    .from('deals')
-    .select(`
+    .from("deals")
+    .select(
+      `
       id, title, day_of_week, is_active, venue_id, price_cents, notes,
       venue:venues!deals_venue_id_fkey ( id, name, address, website_url )
-    `)
-    .eq('id', id)
+    `
+    )
+    .eq("id", id)
     .maybeSingle();
 
   const { data: venues } = await supabase
-    .from('venues')
-    .select('id,name,address')
-    .order('name', { ascending: true });
+    .from("venues")
+    .select("id,name,address")
+    .order("name", { ascending: true });
 
   if (!deal) notFound();
 
@@ -53,11 +55,17 @@ export default async function EditDealPage({
 
         <div>
           <label className="block text-sm font-medium mb-1">Venue *</label>
-          <select name="venue_id" required defaultValue={deal.venue_id ?? ''} className="w-full rounded border px-3 py-2">
+          <select
+            name="venue_id"
+            required
+            defaultValue={deal.venue_id ?? ""}
+            className="w-full rounded border px-3 py-2"
+          >
             <option value="">Select a venue…</option>
-            {(venues ?? []).map(v => (
+            {(venues ?? []).map((v) => (
               <option key={v.id} value={v.id}>
-                {v.name}{v.address ? ` — ${v.address}` : ''}
+                {v.name}
+                {v.address ? ` — ${v.address}` : ""}
               </option>
             ))}
           </select>
@@ -65,49 +73,68 @@ export default async function EditDealPage({
 
         <div>
           <label className="block text-sm font-medium mb-1">Title *</label>
-          <input name="title" defaultValue={deal.title} required className="w-full rounded border px-3 py-2" />
+          <input
+            name="title"
+            defaultValue={deal.title}
+            required
+            className="w-full rounded border px-3 py-2"
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Day of week *</label>
-          <select name="day_of_week" required defaultValue={deal.day_of_week} className="w-full rounded border px-3 py-2">
-            {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(d => (
-              <option key={d} value={d}>{d}</option>
-            ))}
+          <select
+            name="day_of_week"
+            required
+            defaultValue={deal.day_of_week}
+            className="w-full rounded border px-3 py-2"
+          >
+            {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map(
+              (d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              )
+            )}
           </select>
         </div>
 
         <div className="flex items-center gap-2">
           <input type="checkbox" name="is_active" defaultChecked={deal.is_active} id="is_active" />
-          <label htmlFor="is_active" className="text-sm">Active</label>
+          <label htmlFor="is_active" className="text-sm">
+            Active
+          </label>
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Price (dollars)</label>
-          <input 
-            name="price" 
+          <input
+            name="price"
             type="number"
             inputMode="decimal"
-            min="0" 
-            step="0.01" 
-            defaultValue={deal.price_cents != null ? (deal.price_cents / 100).toFixed(2) : ''} 
-            className="w-full rounded border px-3 py-2" 
-            placeholder="e.g. 28.00" 
+            min="0"
+            step="0.01"
+            defaultValue={deal.price_cents != null ? (deal.price_cents / 100).toFixed(2) : ""}
+            className="w-full rounded border px-3 py-2"
+            placeholder="e.g. 28.00"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Notes</label>
-          <textarea 
-            name="notes" 
-            rows={3} 
-            defaultValue={deal.notes ?? ''} 
-            className="w-full rounded border px-3 py-2" 
-            placeholder="Optional details about the deal..." 
+          <textarea
+            name="notes"
+            rows={3}
+            defaultValue={deal.notes ?? ""}
+            className="w-full rounded border px-3 py-2"
+            placeholder="Optional details about the deal..."
           />
         </div>
 
-        <button type="submit" className="rounded bg-orange-500 text-white px-4 py-2 font-medium hover:bg-orange-600">
+        <button
+          type="submit"
+          className="rounded bg-orange-500 text-white px-4 py-2 font-medium hover:bg-orange-600"
+        >
           Save Changes
         </button>
       </form>

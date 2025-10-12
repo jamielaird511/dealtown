@@ -8,7 +8,9 @@ type Props = {
 
 export default function DayPicker({ value, onChange }: Props) {
   const toggle = (d: number) =>
-    onChange(value.includes(d) ? value.filter(x => x !== d) : [...value, d].sort((a,b)=>a-b));
+    onChange(
+      value.includes(d) ? value.filter((x) => x !== d) : [...value, d].sort((a, b) => a - b)
+    );
 
   return (
     <div className="space-y-2">
@@ -25,10 +27,18 @@ export default function DayPicker({ value, onChange }: Props) {
         ))}
       </div>
       <div className="flex gap-2">
-        <button type="button" className="px-3 py-1 rounded border" onClick={() => onChange([1,2,3,4,5])}>
+        <button
+          type="button"
+          className="px-3 py-1 rounded border"
+          onClick={() => onChange([1, 2, 3, 4, 5])}
+        >
           Weekdays
         </button>
-        <button type="button" className="px-3 py-1 rounded border" onClick={() => onChange([0,1,2,3,4,5,6])}>
+        <button
+          type="button"
+          className="px-3 py-1 rounded border"
+          onClick={() => onChange([0, 1, 2, 3, 4, 5, 6])}
+        >
           Everyday
         </button>
         <button type="button" className="px-3 py-1 rounded border" onClick={() => onChange([])}>
@@ -38,4 +48,3 @@ export default function DayPicker({ value, onChange }: Props) {
     </div>
   );
 }
-

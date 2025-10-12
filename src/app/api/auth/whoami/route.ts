@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
 export async function GET() {
   const store = cookies();
@@ -10,13 +10,19 @@ export async function GET() {
     {
       cookies: {
         get: (n) => store.get(n)?.value,
-        set: (n, v, o) => { store.set(n, v, o); },
-        remove: (n, o) => { store.set(n, '', { ...o, maxAge: 0 }); },
+        set: (n, v, o) => {
+          store.set(n, v, o);
+        },
+        remove: (n, o) => {
+          store.set(n, "", { ...o, maxAge: 0 });
+        },
       },
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return NextResponse.json({
     hasAuthCookie: store.getAll().length > 0,
     userId: user?.id ?? null,

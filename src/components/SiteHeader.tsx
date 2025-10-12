@@ -10,24 +10,15 @@ export function SiteHeader() {
           <MapPin className="h-6 w-6" />
           <span className="text-xl">Dealtown</span>
         </Link>
-        
+
         <nav className="flex items-center gap-6">
-          <Link 
-            href="/" 
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
+          <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
             Deals
           </Link>
-          <Link 
-            href="/submit" 
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
+          <Link href="/submit" className="text-sm font-medium transition-colors hover:text-primary">
             Submit a Deal
           </Link>
-          <Link 
-            href="/admin" 
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
+          <Link href="/admin" className="text-sm font-medium transition-colors hover:text-primary">
             Admin
           </Link>
           <Button size="sm" variant="default">
@@ -38,4 +29,3 @@ export function SiteHeader() {
     </header>
   );
 }
-

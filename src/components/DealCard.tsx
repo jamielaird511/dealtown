@@ -39,9 +39,7 @@ export default function DealCard({ deal }: DealCardProps) {
     <article className="rounded-xl border bg-white/70 shadow-sm p-4 flex flex-col gap-2 hover:bg-neutral-50 transition">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          {deal.venue_name && (
-            <h3 className="font-semibold text-lg truncate">{deal.venue_name}</h3>
-          )}
+          {deal.venue_name && <h3 className="font-semibold text-lg truncate">{deal.venue_name}</h3>}
           {deal.venue_address && (
             <p className="text-sm text-black/60 truncate">{deal.venue_address}</p>
           )}
@@ -55,9 +53,7 @@ export default function DealCard({ deal }: DealCardProps) {
 
       <p className="text-[15px]">{deal.title}</p>
 
-      {deal.notes && (
-        <p className="text-sm text-black/70">{deal.notes}</p>
-      )}
+      {deal.notes && <p className="text-sm text-black/70">{deal.notes}</p>}
 
       <div className="mt-1 flex items-center gap-3">
         {deal.website_url && (

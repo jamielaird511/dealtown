@@ -26,13 +26,13 @@ export interface SubmitDealResult {
  */
 function parsePriceToCents(price?: string): number | null {
   if (!price || price.trim() === "") return null;
-  
+
   // Remove $ and whitespace
   const cleaned = price.replace(/[$\s]/g, "");
   const num = parseFloat(cleaned);
-  
+
   if (isNaN(num) || num < 0) return null;
-  
+
   return Math.round(num * 100);
 }
 
@@ -88,4 +88,3 @@ export async function submitDeal(input: SubmitDealInput): Promise<SubmitDealResu
     return { success: false, error: "An unexpected error occurred" };
   }
 }
-

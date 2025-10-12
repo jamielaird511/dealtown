@@ -1,11 +1,13 @@
 # Venue "Connect-or-Create" Implementation
 
 ## Overview
+
 Implemented a normalized venue relationship where deals reference a `venue_id` foreign key instead of storing denormalized `venue_name`/`venue_address` directly. The admin API automatically finds or creates venues when creating/editing deals.
 
 ## Changes Made
 
 ### 1. **Type Definitions** (`src/lib/types.ts`)
+
 Added new `Venue` type and updated `Deal` type:
 
 ```ts
@@ -21,15 +23,16 @@ export type Deal = {
   title: string;
   day_of_week: string;
   is_active: boolean;
-  venue_id: number;          // ← Foreign key
-  venue?: Venue;             // ← Nested relation for display
-  venue_name?: string;       // ← For forms (backward compat)
-  venue_address?: string;    // ← For forms (backward compat)
+  venue_id: number; // ← Foreign key
+  venue?: Venue; // ← Nested relation for display
+  venue_name?: string; // ← For forms (backward compat)
+  venue_address?: string; // ← For forms (backward compat)
   // ... other fields
 };
 ```
 
 ### 2. **Database RPC Function** (`supabase/migrations/0007_upsert_venue_rpc.sql`)
+
 Created a Postgres function for atomic venue find-or-create:
 
 ```sql
@@ -65,20 +68,23 @@ $$;
 ```
 
 **Benefits**:
+
 - ✅ **Atomic operation** - No race conditions
 - ✅ **Single DB round-trip** - Faster performance
 - ✅ **NULL-safe** - Handles null addresses correctly
 - ✅ **Transactional** - Either finds or creates, never fails halfway
 
 ### 3. **Admin API - Create Route** (`src/app/api/admin/deals/route.ts`)
+
 **POST handler** now uses RPC:
+
 - Accepts `venue_name`, `venue_address`, `website_url` from form
 - Calls `upsert_venue` RPC (returns venue_id)
 - Inserts deal with resolved `venue_id`
 
 ```ts
 // Resolve or create the venue using RPC (atomic operation)
-const { data: venueId, error: vErr } = await supabase.rpc('upsert_venue', {
+const { data: venueId, error: vErr } = await supabase.rpc("upsert_venue", {
   v_name: parsed.data.venue_name?.trim() || null,
   v_address: parsed.data.venue_address?.trim() || null,
   v_website_url: parsed.data.website_url || null,
@@ -89,7 +95,7 @@ if (vErr) {
 }
 
 // Insert deal with venue_id
-await supabase.from('deals').insert({
+await supabase.from("deals").insert({
   title,
   day_of_week,
   is_active,
@@ -101,13 +107,15 @@ await supabase.from('deals').insert({
 ```
 
 ### 4. **Admin API - Update Route** (`src/app/api/admin/deals/[id]/route.ts`)
+
 **PATCH handler** uses same RPC:
+
 - Accepts `venue_name`, `venue_address`, `website_url` from form
 - Calls `upsert_venue` RPC
 - Updates deal with resolved `venue_id`
 
 ```ts
-const { data: venueId, error: vErr } = await admin.rpc('upsert_venue', {
+const { data: venueId, error: vErr } = await admin.rpc("upsert_venue", {
   v_name: parsed.venue_name?.trim() || null,
   v_address: parsed.venue_address?.trim() || null,
   v_website_url: parsed.website_url || null,
@@ -122,15 +130,18 @@ const payload = {
 ```
 
 ### 5. **Admin List Page** (`src/app/admin/page.tsx`)
+
 - Fetches deals with nested venue data: `.select('...venues(id,name,address,website_url)')`
 - Displays venue name/address from nested object: `(d.venues as any)?.name`
 
 ### 6. **Admin Edit Page** (`src/app/admin/[id]/page.tsx`)
+
 - Fetches deal with nested venue: `.select('...venues(id,name,address,website_url)')`
 - Form pre-populates with venue data: `defaultValue={(deal.venues as any)?.name}`
 - Form still submits `venue_name`, `venue_address` (API handles normalization)
 
 ### 7. **Public Data Fetchers** (`src/lib/data.ts`)
+
 - Updated `fetchDeals()` to join with venues
 - Maps nested venue data to flat structure for backward compatibility
 - Public components (`DealCard`) continue using `venue_name`, `venue_address`
@@ -155,7 +166,7 @@ const payload = {
 ✅ **Consistent data** - Venue name/address updated in one place  
 ✅ **Simple admin UX** - No venue picker needed; just type the name  
 ✅ **Backward compatible** - Public API unchanged  
-✅ **Automatic deduplication** - Same name+address = same venue_id  
+✅ **Automatic deduplication** - Same name+address = same venue_id
 
 ## Database Structure
 
@@ -179,6 +190,7 @@ deals
 ## Future Enhancements (Optional)
 
 When ready, you can add:
+
 - `/api/admin/venues?search=...` for fuzzy venue search
 - Autocomplete venue picker in admin forms
 - Separate "Add new venue" modal
@@ -187,7 +199,7 @@ When ready, you can add:
 ## Migration Notes
 
 If you have existing deals with denormalized venue data:
+
 1. Create a migration to populate the `venues` table from existing `deals.venue_name/venue_address`
 2. Update `deals.venue_id` to reference the normalized venues
 3. Remove old `venue_name`/`venue_address` columns from deals table
-

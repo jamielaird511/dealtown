@@ -3,18 +3,23 @@ import { Share2 } from "lucide-react";
 
 type HH = {
   id: string;
-  title: string;               // e.g. "$8 House Pints"
-  details?: string | null;     // e.g. "All house beers and wines"
+  title?: string | null; // Optional, e.g. "$8 House Pints"
+  details?: string | null; // e.g. "All house beers and wines"
   price_cents?: number | null;
-  start_time: string;          // "16:00:00"
-  end_time: string;            // "18:00:00"
-  website_url?: string | null;
-  venues?: { id: number; name: string; address?: string | null } | null;
+  start_time: string; // "16:00:00"
+  end_time: string; // "18:00:00"
+  website_url?: string | null; // Optional override
+  venues?: {
+    id: number;
+    name: string;
+    address?: string | null;
+    website_url?: string | null;
+  } | null;
 };
 
 function fmtTime(t: string) {
   // "16:00:00" → "16:00" (keep your existing 24h style)
-  return t?.slice(0,5) || t;
+  return t?.slice(0, 5) || t;
 }
 function money(c?: number | null) {
   if (c == null) return null;
@@ -22,19 +27,26 @@ function money(c?: number | null) {
 }
 
 export default function HappyHourCard({ hh }: { hh: HH }) {
-  const venueName = hh.venues?.name ?? "Unknown venue";
-  const venueAddress = hh.venues?.address ?? "";
+  const venue = hh.venues ?? {};
+  const venueName = venue.name ?? "Unknown venue";
+  const venueAddress = venue.address ?? "";
+  const website = hh.website_url || venue.website_url; // prefer HH, fallback to venue
   const timeRange = `${fmtTime(hh.start_time)}–${fmtTime(hh.end_time)}`;
   const price = money(hh.price_cents);
 
   // Share payload focuses on venue + time (quick context)
-  const shareText = `🍻 Happy Hour at ${venueName} ${timeRange} — ${hh.title || ""} ${price || ""}`.trim();
+  const shareText =
+    `🍻 Happy Hour at ${venueName} ${timeRange} — ${hh.title || ""} ${price || ""}`.trim();
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
 
   async function handleShare() {
     try {
       if (navigator.share) {
-        await navigator.share({ title: `Happy Hour • ${venueName}`, text: shareText, url: shareUrl });
+        await navigator.share({
+          title: `Happy Hour • ${venueName}`,
+          text: shareText,
+          url: shareUrl,
+        });
       } else {
         await navigator.clipboard.writeText(`${shareText} ${shareUrl}`.trim());
         alert("Copied to clipboard!");
@@ -50,9 +62,7 @@ export default function HappyHourCard({ hh }: { hh: HH }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h4 className="text-lg font-semibold truncate">{venueName}</h4>
-          {venueAddress && (
-            <div className="text-sm text-gray-600 truncate">{venueAddress}</div>
-          )}
+          {venueAddress && <div className="text-sm text-gray-600 truncate">{venueAddress}</div>}
         </div>
         <div className="text-sm text-gray-700 whitespace-nowrap">{timeRange}</div>
       </div>
@@ -67,19 +77,12 @@ export default function HappyHourCard({ hh }: { hh: HH }) {
       )}
 
       {/* Details (optional) */}
-      {hh.details && (
-        <div className="mt-1 text-sm text-gray-600">{hh.details}</div>
-      )}
+      {hh.details && <div className="mt-1 text-sm text-gray-600">{hh.details}</div>}
 
       {/* Footer actions */}
       <div className="mt-2 flex items-center gap-4">
-        {hh.website_url && (
-          <a
-            href={hh.website_url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm underline"
-          >
+        {website && (
+          <a href={website} target="_blank" rel="noreferrer" className="text-sm underline">
             Website
           </a>
         )}

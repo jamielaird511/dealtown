@@ -1,31 +1,33 @@
 // src/app/admin/page.tsx
-import Link from 'next/link';
-import { requireAdmin } from '@/lib/auth';
-import { moneyFromCents } from '@/lib/money';
-import { ActiveToggle } from '@/components/ActiveToggle';
-import { DeleteButton } from '@/components/DeleteButton';
+import Link from "next/link";
+import { requireAdmin } from "@/lib/auth";
+import { moneyFromCents } from "@/lib/money";
+import { ActiveToggle } from "@/components/ActiveToggle";
+import { DeleteButton } from "@/components/DeleteButton";
 
 // Force dynamic rendering - never cache admin pages
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminPage() {
   const { user, supabase } = await requireAdmin();
 
   const { data: deals, error: dealsError } = await supabase
-    .from('deals')
-    .select(`
+    .from("deals")
+    .select(
+      `
       id, title, day_of_week, is_active, venue_id, price_cents, notes, created_at, updated_at,
       venue:venues!deals_venue_id_fkey (
         id, name, address, website_url
       )
-    `)
-    .order('price_cents', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: false })
+    `
+    )
+    .order("price_cents", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false })
     .limit(50);
 
   if (dealsError) {
-    console.error('Admin deals query error:', dealsError);
+    console.error("Admin deals query error:", dealsError);
   }
 
   return (
@@ -36,14 +38,28 @@ export default async function AdminPage() {
           <p className="text-sm text-gray-600">Signed in as {user.email}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/admin/venues" className="rounded-lg bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200">
+          <Link
+            href="/admin/venues"
+            className="rounded-lg bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200"
+          >
             Venues
           </Link>
-          <Link href="/admin/new" className="rounded-lg bg-orange-500 text-white px-4 py-2 font-medium hover:bg-orange-600">
+          <Link
+            href="/admin/happy-hours"
+            className="rounded-lg bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200"
+          >
+            Happy Hours
+          </Link>
+          <Link
+            href="/admin/new"
+            className="rounded-lg bg-orange-500 text-white px-4 py-2 font-medium hover:bg-orange-600"
+          >
             New Deal
           </Link>
           <form action="/api/auth/logout" method="post">
-            <button className="rounded-lg bg-gray-200 px-3 py-2 text-sm hover:bg-gray-300">Sign out</button>
+            <button className="rounded-lg bg-gray-200 px-3 py-2 text-sm hover:bg-gray-300">
+              Sign out
+            </button>
           </form>
         </div>
       </div>
@@ -76,11 +92,14 @@ export default async function AdminPage() {
                   </td>
                   <td className="p-3 text-sm capitalize">{d.day_of_week}</td>
                   <td className="p-3 text-sm">
-                    {d.price_cents ? `$${moneyFromCents(d.price_cents)}` : '—'}
+                    {d.price_cents ? `$${moneyFromCents(d.price_cents)}` : "—"}
                   </td>
                   <td className="p-3">
                     <div className="flex gap-2">
-                      <Link href={`/admin/${d.id}`} className="text-sm text-blue-600 hover:underline">
+                      <Link
+                        href={`/admin/${d.id}`}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
                         Edit
                       </Link>
                       <DeleteButton id={d.id} title={d.title} />
@@ -103,7 +122,9 @@ export default async function AdminPage() {
                   <p className="text-xs text-gray-500">{(d as any).venue?.address}</p>
                 </div>
                 {d.price_cents && (
-                  <span className="text-orange-600 font-semibold">${moneyFromCents(d.price_cents)}</span>
+                  <span className="text-orange-600 font-semibold">
+                    ${moneyFromCents(d.price_cents)}
+                  </span>
                 )}
               </div>
               <div className="flex items-center gap-2 text-sm">
@@ -123,7 +144,10 @@ export default async function AdminPage() {
 
       {!deals?.length && (
         <div className="text-center p-12 text-gray-500">
-          No deals yet. <Link href="/admin/new" className="text-orange-600 underline">Create one</Link>
+          No deals yet.{" "}
+          <Link href="/admin/new" className="text-orange-600 underline">
+            Create one
+          </Link>
         </div>
       )}
     </main>

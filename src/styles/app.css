@@ -6,7 +6,8 @@
 :root {
   --ring: 0 0% 10%;
 }
-html, body {
+html,
+body {
   @apply bg-neutral-50 text-neutral-900;
 }
 .container-page {
@@ -30,4 +31,3 @@ html, body {
 .chip {
   @apply whitespace-nowrap rounded-full border border-neutral-200 bg-white px-3 py-1 text-sm shadow-sm;
 }
-

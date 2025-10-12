@@ -1,4 +1,4 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 export const createClient = () => {
   return createSupabaseClient(
@@ -6,4 +6,3 @@ export const createClient = () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 };
-

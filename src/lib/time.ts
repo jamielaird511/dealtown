@@ -4,4 +4,3 @@ export function getDowInZone(tz = "Pacific/Auckland") {
   const zoned = new Date(now.toLocaleString("en-US", { timeZone: tz }));
   return zoned.getDay(); // 0..6 (Sun..Sat)
 }
-

@@ -43,7 +43,6 @@ npm install
 ```
 
 3. **Set up Supabase**
-
    - Create a new project at [supabase.com](https://supabase.com)
    - Go to Project Settings > API to find your project URL and anon key
    - Run the migration to create the database schema:
@@ -159,4 +158,3 @@ MIT
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-

@@ -36,18 +36,10 @@ export function ApproveButton({ submissionId }: ApproveButtonProps) {
 
   return (
     <div className="space-y-2">
-      <Button
-        onClick={handleApprove}
-        disabled={isApproving}
-        size="sm"
-        variant="default"
-      >
+      <Button onClick={handleApprove} disabled={isApproving} size="sm" variant="default">
         {isApproving ? "Approving..." : "Approve"}
       </Button>
-      {status?.type === "error" && (
-        <p className="text-xs text-destructive">{status.message}</p>
-      )}
+      {status?.type === "error" && <p className="text-xs text-destructive">{status.message}</p>}
     </div>
   );
 }
-

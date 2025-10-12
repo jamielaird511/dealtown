@@ -14,7 +14,13 @@ export async function GET(req: Request) {
       .from("today_active_deals")
       .select("id,title")
       .order("id");
-    return NextResponse.json({ mode: "view:today_active_deals", day: d, error, count: data?.length ?? 0, rows: data ?? [] });
+    return NextResponse.json({
+      mode: "view:today_active_deals",
+      day: d,
+      error,
+      count: data?.length ?? 0,
+      rows: data ?? [],
+    });
   }
 
   const { data, error } = await supabase
@@ -23,5 +29,11 @@ export async function GET(req: Request) {
     .eq("is_active", true)
     .eq("day_of_week", d)
     .order("id");
-  return NextResponse.json({ mode: "table:deals", day: d, error, count: data?.length ?? 0, rows: data ?? [] });
+  return NextResponse.json({
+    mode: "table:deals",
+    day: d,
+    error,
+    count: data?.length ?? 0,
+    rows: data ?? [],
+  });
 }

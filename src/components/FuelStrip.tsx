@@ -49,7 +49,9 @@ export default async function FuelStrip() {
               <span key={`${p.product}-${p.brand}-${p.venue_suburb}`} className="chip">
                 <span className="font-semibold">{label(p.product)}</span>
                 <span className="mx-1">{dollars(p.price_cents)}</span>
-                <span className="muted">• {p.brand} {p.venue_suburb ?? ""}</span>
+                <span className="muted">
+                  • {p.brand} {p.venue_suburb ?? ""}
+                </span>
               </span>
             ))}
           </div>

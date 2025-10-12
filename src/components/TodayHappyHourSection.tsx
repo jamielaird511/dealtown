@@ -5,19 +5,50 @@ import HappyHourCard from "@/components/HappyHourCard";
 const fetcher = async (u: string) => {
   const res = await fetch(u);
   const text = await res.text();
-  if (!text) return { data: [] };      // tolerate empty body
+  if (!text) return { data: [] };
   try {
     return JSON.parse(text);
   } catch {
-    // return a shape the UI can handle
     return { data: [], error: `Bad JSON from ${u}: ${text.slice(0, 120)}…` };
   }
 };
 
-export default function TodayHappyHourSection() {
-  const { data } = useSWR("/api/happy-hours?day=today", fetcher);
+function dayIndexFromSlug(slug?: string): number | "today" {
+  if (!slug || slug === "today") return "today";
+  const m: Record<string, number> = {
+    sun: 0,
+    sunday: 0,
+    mon: 1,
+    monday: 1,
+    tue: 2,
+    tuesday: 2,
+    wed: 3,
+    wednesday: 3,
+    thu: 4,
+    thursday: 4,
+    fri: 5,
+    friday: 5,
+    sat: 6,
+    saturday: 6,
+  };
+  const key = slug.toLowerCase();
+  return key in m ? m[key] : "today";
+}
+
+export default function TodayHappyHourSection({ daySlug }: { daySlug?: string }) {
+  const dayIndex = dayIndexFromSlug(daySlug);
+  const key =
+    typeof dayIndex === "number"
+      ? `/api/happy-hours?day=${dayIndex}`
+      : `/api/happy-hours?day=today`;
+
+  const { data, error } = useSWR(key, fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: true,
+    keepPreviousData: false,
+  });
+
   const items = data?.data ?? [];
-  const err = data?.error as string | undefined;
 
   return (
     <section id="happy-hour" className="mt-8">
@@ -26,13 +57,15 @@ export default function TodayHappyHourSection() {
           Happy <span className="text-orange-500">Hour</span>
         </h3>
 
-        {err && <div className="text-sm text-red-600 mb-3">Error: {err}</div>}
-        
+        {error && <div className="text-sm text-red-600">Error loading happy hours.</div>}
+
         {items.length === 0 ? (
-          <div className="opacity-70 text-sm">No happy hours today.</div>
+          <div className="opacity-70 text-sm">No happy hours for this day.</div>
         ) : (
           <div className="flex flex-col gap-3">
-            {items.map((hh: any) => <HappyHourCard key={hh.id} hh={hh} />)}
+            {items.map((hh: any) => (
+              <HappyHourCard key={hh.id} hh={hh} />
+            ))}
           </div>
         )}
       </div>

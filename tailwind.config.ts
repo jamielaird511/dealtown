@@ -6,8 +6,8 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        brand: "var(--brand)",       // our orange
-        brandFg: "var(--brand-fg)",  // readable foreground on brand bg
+        brand: "var(--brand)", // our orange
+        brandFg: "var(--brand-fg)", // readable foreground on brand bg
       },
       fontFamily: {
         sans: ["var(--font-brand)", "ui-sans-serif", "system-ui", "Segoe UI", "Inter", "Arial"],

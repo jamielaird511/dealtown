@@ -1,8 +1,8 @@
-import Link from 'next/link';
-import { fetchVenues } from '@/lib/data';
+import Link from "next/link";
+import { fetchVenues } from "@/lib/data";
 
 // Opt-out of static rendering & caching
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function VenuesPage() {
   const venues = await fetchVenues();
@@ -15,9 +15,9 @@ export default async function VenuesPage() {
           Home
         </Link>
       </div>
-      
+
       <div className="grid gap-3">
-        {venues.map(v => (
+        {venues.map((v) => (
           <Link
             key={v.id}
             href={`/venues/${v.id}`}
@@ -35,4 +35,3 @@ export default async function VenuesPage() {
     </main>
   );
 }
-

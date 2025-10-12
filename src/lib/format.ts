@@ -13,7 +13,13 @@ const DayLabelBySlug: Record<string, string> = {
 };
 
 const DayLabelByIndex = [
-  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
 ];
 
 /**
@@ -35,17 +41,17 @@ export function formatDayOfWeek(day: string | number): string {
  * Format 24-hour time string (HH:mm) to 12-hour format (h:mm a)
  */
 export function formatTime(time: string): string {
-  const [hours, minutes] = time.split(':').map(Number);
-  const period = hours >= 12 ? 'PM' : 'AM';
+  const [hours, minutes] = time.split(":").map(Number);
+  const period = hours >= 12 ? "PM" : "AM";
   const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+  return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
 }
 
 /**
  * Format time range
  */
 export function formatTimeRange(startTime?: string, endTime?: string): string {
-  if (!startTime && !endTime) return '';
+  if (!startTime && !endTime) return "";
   if (startTime && endTime) {
     return `${formatTime(startTime)} – ${formatTime(endTime)}`;
   }
@@ -64,7 +70,7 @@ export function formatPrice(cents: number): string {
  * Format dollars from cents with null handling
  */
 export function formatDollarsFromCents(c?: number | null): string {
-  if (c == null) return '';
+  if (c == null) return "";
   return `$${(c / 100).toFixed(2)}`;
 }
 
@@ -72,24 +78,28 @@ export function formatDollarsFromCents(c?: number | null): string {
  * Label fuel product for display
  */
 export function labelProduct(p: string): string {
-  return p.toLowerCase() === 'diesel' ? 'Diesel' : p.toUpperCase();
+  return p.toLowerCase() === "diesel" ? "Diesel" : p.toUpperCase();
 }
 
 /**
  * Build a schedule window string like "Fri 4:00 PM–6:00 PM"
  */
-export function formatScheduleWindow(dayOfWeek?: number, startTime?: string, endTime?: string): string {
+export function formatScheduleWindow(
+  dayOfWeek?: number,
+  startTime?: string,
+  endTime?: string
+): string {
   const parts: string[] = [];
-  
+
   if (dayOfWeek !== undefined) {
     parts.push(formatDayOfWeek(dayOfWeek));
   }
-  
+
   if (startTime || endTime) {
     parts.push(formatTimeRange(startTime, endTime));
   }
-  
-  return parts.join(' ');
+
+  return parts.join(" ");
 }
 
 /**
@@ -103,9 +113,8 @@ export function formatRelativeTime(timestamp: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'Just now';
+  if (diffMins < 1) return "Just now";
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   return `${diffDays}d ago`;
 }
-

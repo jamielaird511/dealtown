@@ -20,6 +20,10 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const raw = await req.json();
+
+  // Remove title key if empty (don't send title: null to DB)
+  if (!raw.title) delete raw.title;
+
   const parsed = HappyHourSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

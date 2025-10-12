@@ -1,13 +1,13 @@
-import { requireAdmin } from '@/lib/auth';
-import Link from 'next/link';
+import { requireAdmin } from "@/lib/auth";
+import Link from "next/link";
 
 export default async function NewDealPage({ searchParams }: { searchParams?: { error?: string } }) {
   const { supabase } = await requireAdmin();
 
   const { data: venues } = await supabase
-    .from('venues')
-    .select('id,name,address')
-    .order('name', { ascending: true });
+    .from("venues")
+    .select("id,name,address")
+    .order("name", { ascending: true });
 
   const error = searchParams?.error;
 
@@ -31,14 +31,15 @@ export default async function NewDealPage({ searchParams }: { searchParams?: { e
           <label className="block text-sm font-medium mb-1">Venue *</label>
           <select name="venue_id" required className="w-full rounded border px-3 py-2">
             <option value="">Select a venue…</option>
-            {(venues ?? []).map(v => (
+            {(venues ?? []).map((v) => (
               <option key={v.id} value={v.id}>
-                {v.name}{v.address ? ` — ${v.address}` : ''}
+                {v.name}
+                {v.address ? ` — ${v.address}` : ""}
               </option>
             ))}
           </select>
           <div className="text-xs mt-1 text-gray-600">
-            Need a new venue?{' '}
+            Need a new venue?{" "}
             <Link href="/admin/venues/new" className="text-blue-600 underline">
               Add one
             </Link>
@@ -53,36 +54,50 @@ export default async function NewDealPage({ searchParams }: { searchParams?: { e
         <div>
           <label className="block text-sm font-medium mb-1">Day of week *</label>
           <select name="day_of_week" required className="w-full rounded border px-3 py-2">
-            {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(d => (
-              <option key={d} value={d}>{d}</option>
-            ))}
+            {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map(
+              (d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              )
+            )}
           </select>
         </div>
 
         <div className="flex items-center gap-2">
           <input type="checkbox" name="is_active" defaultChecked id="is_active" />
-          <label htmlFor="is_active" className="text-sm">Active</label>
+          <label htmlFor="is_active" className="text-sm">
+            Active
+          </label>
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Price (dollars)</label>
-          <input 
-            name="price" 
-            type="number" 
+          <input
+            name="price"
+            type="number"
             inputMode="decimal"
-            min="0" 
-            step="0.01" 
-            className="w-full rounded border px-3 py-2" 
-            placeholder="e.g. 28.00" 
+            min="0"
+            step="0.01"
+            className="w-full rounded border px-3 py-2"
+            placeholder="e.g. 28.00"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Notes</label>
-          <textarea name="notes" rows={3} className="w-full rounded border px-3 py-2" placeholder="Optional details about the deal..." />
+          <textarea
+            name="notes"
+            rows={3}
+            className="w-full rounded border px-3 py-2"
+            placeholder="Optional details about the deal..."
+          />
         </div>
 
-        <button type="submit" className="rounded bg-orange-500 text-white px-4 py-2 font-medium hover:bg-orange-600">
+        <button
+          type="submit"
+          className="rounded bg-orange-500 text-white px-4 py-2 font-medium hover:bg-orange-600"
+        >
           Save Deal
         </button>
       </form>
