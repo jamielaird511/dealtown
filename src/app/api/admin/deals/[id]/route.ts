@@ -55,7 +55,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.redirect(url, { status: 303 });
     }
 
-    return NextResponse.redirect(new URL("/admin?ok=1", req.url), { status: 303 });
+    return NextResponse.redirect(new URL("/admin/deals?ok=1", req.url), { status: 303 });
   } catch (e: any) {
     console.error("PATCH /api/admin/deals/[id] failed:", e);
     const url = new URL(`/admin/${params.id}`, req.url);
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
       return NextResponse.redirect(url, { status: 303 });
     }
 
-    return NextResponse.redirect(new URL("/admin?ok=1", req.url), { status: 303 });
+    return NextResponse.redirect(new URL("/admin/deals?ok=1", req.url), { status: 303 });
   } catch (e: any) {
     console.error("POST /api/admin/deals/[id] failed:", e);
     const url = new URL(`/admin/${ctx.params.id}`, req.url);

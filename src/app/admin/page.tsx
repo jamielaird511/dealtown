@@ -1,155 +1,24 @@
-// src/app/admin/page.tsx
-import Link from "next/link";
+import { AdminCard } from "@/components/admin/AdminCard";
 import { requireAdmin } from "@/lib/auth";
-import { moneyFromCents } from "@/lib/money";
-import { ActiveToggle } from "@/components/ActiveToggle";
-import { DeleteButton } from "@/components/DeleteButton";
 
-// Force dynamic rendering - never cache admin pages
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function AdminPage() {
-  const { user, supabase } = await requireAdmin();
-
-  const { data: deals, error: dealsError } = await supabase
-    .from("deals")
-    .select(
-      `
-      id, title, day_of_week, is_active, venue_id, price_cents, notes, created_at, updated_at,
-      venue:venues!deals_venue_id_fkey (
-        id, name, address, website_url
-      )
-    `
-    )
-    .order("price_cents", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  if (dealsError) {
-    console.error("Admin deals query error:", dealsError);
-  }
+export default async function AdminDashboard() {
+  const { user } = await requireAdmin();
 
   return (
-    <main className="p-6 space-y-4 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Admin</h1>
-          <p className="text-sm text-gray-600">Signed in as {user.email}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/admin/venues"
-            className="rounded-lg bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200"
-          >
-            Venues
-          </Link>
-          <Link
-            href="/admin/happy-hours"
-            className="rounded-lg bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200"
-          >
-            Happy Hours
-          </Link>
-          <Link
-            href="/admin/new"
-            className="rounded-lg bg-orange-500 text-white px-4 py-2 font-medium hover:bg-orange-600"
-          >
-            New Deal
-          </Link>
-          <form action="/api/auth/logout" method="post">
-            <button className="rounded-lg bg-gray-200 px-3 py-2 text-sm hover:bg-gray-300">
-              Sign out
-            </button>
-          </form>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
+        <p className="text-sm text-gray-600 mt-1">Signed in as {user.email}</p>
       </div>
-
-      {/* Mobile: Cards, Desktop: Table */}
-      <div className="space-y-3 md:space-y-0">
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="p-3 text-left text-sm font-medium">Active</th>
-                <th className="p-3 text-left text-sm font-medium">Title</th>
-                <th className="p-3 text-left text-sm font-medium">Venue</th>
-                <th className="p-3 text-left text-sm font-medium">Day</th>
-                <th className="p-3 text-left text-sm font-medium">Price</th>
-                <th className="p-3 text-left text-sm font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(deals ?? []).map((d) => (
-                <tr key={d.id} className="border-b hover:bg-gray-50">
-                  <td className="p-3">
-                    <ActiveToggle id={d.id} initial={d.is_active} />
-                  </td>
-                  <td className="p-3">{d.title}</td>
-                  <td className="p-3">
-                    <div className="text-sm">{(d as any).venue?.name}</div>
-                    <div className="text-xs text-gray-500">{(d as any).venue?.address}</div>
-                  </td>
-                  <td className="p-3 text-sm capitalize">{d.day_of_week}</td>
-                  <td className="p-3 text-sm">
-                    {d.price_cents ? `$${moneyFromCents(d.price_cents)}` : "—"}
-                  </td>
-                  <td className="p-3">
-                    <div className="flex gap-2">
-                      <Link
-                        href={`/admin/${d.id}`}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        Edit
-                      </Link>
-                      <DeleteButton id={d.id} title={d.title} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div className="md:hidden space-y-3">
-          {(deals ?? []).map((d) => (
-            <div key={d.id} className="rounded-xl border bg-white p-4 space-y-2">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-semibold">{d.title}</h3>
-                  <p className="text-sm text-gray-600">{(d as any).venue?.name}</p>
-                  <p className="text-xs text-gray-500">{(d as any).venue?.address}</p>
-                </div>
-                {d.price_cents && (
-                  <span className="text-orange-600 font-semibold">
-                    ${moneyFromCents(d.price_cents)}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <ActiveToggle id={d.id} initial={d.is_active} />
-                <span className="capitalize text-gray-600">{d.day_of_week}</span>
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Link href={`/admin/${d.id}`} className="text-sm text-blue-600 hover:underline">
-                  Edit
-                </Link>
-                <DeleteButton id={d.id} title={d.title} />
-              </div>
-            </div>
-          ))}
-        </div>
+      
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <AdminCard title="Venues" description="Manage venues." href="/admin/venues" />
+        <AdminCard title="Deals" description="Daily food & drink deals." href="/admin/deals" />
+        <AdminCard title="Happy Hour" description="Times & days for drink specials." href="/admin/happy-hours" />
       </div>
-
-      {!deals?.length && (
-        <div className="text-center p-12 text-gray-500">
-          No deals yet.{" "}
-          <Link href="/admin/new" className="text-orange-600 underline">
-            Create one
-          </Link>
-        </div>
-      )}
-    </main>
+    </div>
   );
 }
