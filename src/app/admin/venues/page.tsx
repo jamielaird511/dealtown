@@ -1,13 +1,9 @@
 import AdminHeader from "@/components/admin/AdminHeader";
 import { AdminTable } from "@/components/admin/AdminTable";
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
-import {
-  getSupabaseServerComponentClient,
-  getSupabaseServerActionClient,
-} from "@/lib/supabaseClients";
+import { getSupabaseServerComponentClient } from "@/lib/supabaseClients";
+import { toggleVenueActive, deleteVenue } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -40,46 +36,6 @@ async function getVenuesSafe(): Promise<{ rows: any[]; errorMsg?: string }> {
     return { rows: [], errorMsg: toMsg(error, "Failed to load venues") };
   }
   return { rows: data ?? [] };
-}
-
-// Actions (keep as you had them; showing final forms)
-export async function toggleVenueActive(formData: FormData) {
-  "use server";
-  const id = Number(formData.get("id"));
-  const next = String(formData.get("next")) === "true";
-  const supabase = getSupabaseServerActionClient();
-
-  try {
-    const { error } = await supabase.from("venues").update({ active: next }).eq("id", id);
-    if (error) {
-      console.error("toggleVenueActive error:", error);
-      throw new Error(toMsg(error, "Failed to update venue status"));
-    }
-  } catch (e: any) {
-    revalidatePath("/admin/venues");
-    redirect(`/admin/venues?error=${encodeURIComponent(toMsg(e))}`);
-  }
-  
-  revalidatePath("/admin/venues");
-}
-
-export async function deleteVenue(formData: FormData) {
-  "use server";
-  const id = Number(formData.get("id"));
-  const supabase = getSupabaseServerActionClient();
-
-  try {
-    const { error } = await supabase.from("venues").delete().eq("id", id);
-    if (error) {
-      console.error("deleteVenue error:", error);
-      throw new Error(toMsg(error, "Failed to delete venue"));
-    }
-  } catch (e: any) {
-    revalidatePath("/admin/venues");
-    redirect(`/admin/venues?error=${encodeURIComponent(toMsg(e))}`);
-  }
-  
-  revalidatePath("/admin/venues");
 }
 
 export default async function VenuesPage({

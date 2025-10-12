@@ -1,101 +1,86 @@
-"use client";
-import { Share2 } from "lucide-react";
+import { Share2, ExternalLink } from "lucide-react";
 
-type HH = {
-  id: string;
-  title?: string | null; // Optional, e.g. "$8 House Pints"
-  details?: string | null; // e.g. "All house beers and wines"
-  price_cents?: number | null;
-  start_time: string; // "16:00:00"
-  end_time: string; // "18:00:00"
-  website_url?: string | null; // Optional override
-  venues?: {
-    id: number;
-    name: string;
-    address?: string | null;
-    website_url?: string | null;
-  } | null;
+type Venue = {
+  name?: string;
+  address?: string;
+  website_url?: string;
 };
 
-function fmtTime(t: string) {
-  // "16:00:00" → "16:00" (keep your existing 24h style)
-  return t?.slice(0, 5) || t;
-}
-function money(c?: number | null) {
-  if (c == null) return null;
-  return `$${(c / 100).toFixed(2)}`;
+type HH = {
+  id: number;
+  start_time: string;
+  end_time: string;
+  details?: string;
+  is_active?: boolean;
+  website_url?: string;
+  venues?: Venue | null;
+};
+
+function fmtTime(t: string): string {
+  if (!t) return "";
+  // "16:00:00" → "4:00 PM"
+  const [h, m] = t.split(":");
+  const hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const h12 = hour % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
 }
 
 export default function HappyHourCard({ hh }: { hh: HH }) {
   const venue = hh.venues ?? {};
-  const venueName = venue.name ?? "Unknown venue";
-  const venueAddress = venue.address ?? "";
-  const website = hh.website_url || venue.website_url; // prefer HH, fallback to venue
+  const venueName = (venue as Venue).name ?? "Unknown venue";
+  const venueAddress = (venue as Venue).address ?? "";
+  const website = hh.website_url || (venue as Venue).website_url;
   const timeRange = `${fmtTime(hh.start_time)}–${fmtTime(hh.end_time)}`;
-  const price = money(hh.price_cents);
 
-  // Share payload focuses on venue + time (quick context)
-  const shareText =
-    `🍻 Happy Hour at ${venueName} ${timeRange} — ${hh.title || ""} ${price || ""}`.trim();
-  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
-
-  async function handleShare() {
+  async function onShare() {
+    const text = `${hh.details || "Happy Hour"} at ${venueName} • ${timeRange}`;
+    const url = typeof window !== "undefined" ? window.location.href : "";
     try {
       if (navigator.share) {
-        await navigator.share({
-          title: `Happy Hour • ${venueName}`,
-          text: shareText,
-          url: shareUrl,
-        });
+        await navigator.share({ title: "Happy Hour", text, url });
       } else {
-        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`.trim());
+        await navigator.clipboard.writeText(`${text}\n${url}`);
         alert("Copied to clipboard!");
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // User cancelled or error
     }
   }
 
   return (
-    <article className="rounded-2xl border p-4 shadow-sm">
-      {/* Top row: Venue (bold) and Time on the right */}
+    <article className="rounded-xl border bg-white p-4 shadow-sm hover:shadow-md transition">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h4 className="text-lg font-semibold truncate">{venueName}</h4>
-          {venueAddress && <div className="text-sm text-gray-600 truncate">{venueAddress}</div>}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-lg font-semibold truncate">{venueName}</h3>
+          {venueAddress && <p className="text-sm text-gray-600 truncate">{venueAddress}</p>}
         </div>
-        <div className="text-sm text-gray-700 whitespace-nowrap">{timeRange}</div>
-      </div>
-
-      {/* Offer line: optional price + title */}
-      {(hh.title || price) && (
-        <div className="mt-2 text-[15px]">
-          {price ? <span className="text-orange-500 font-semibold">{price}</span> : null}
-          {price && hh.title ? <span className="mx-1">•</span> : null}
-          {hh.title ? <span className="font-medium">{hh.title}</span> : null}
-        </div>
-      )}
-
-      {/* Details (optional) */}
-      {hh.details && <div className="mt-1 text-sm text-gray-600">{hh.details}</div>}
-
-      {/* Footer actions */}
-      <div className="mt-2 flex items-center gap-4">
-        {website && (
-          <a href={website} target="_blank" rel="noreferrer" className="text-sm underline">
-            Website
-          </a>
-        )}
-
         <button
-          onClick={handleShare}
-          className="ml-auto inline-flex items-center gap-1 text-gray-600 hover:text-orange-500 transition"
-          title="Share"
+          onClick={onShare}
+          className="shrink-0 rounded-full p-2 hover:bg-gray-100"
+          type="button"
+          aria-label="Share"
         >
-          <Share2 className="w-4 h-4" />
-          <span className="text-sm">Share</span>
+          <Share2 size={18} className="text-gray-600" />
         </button>
       </div>
+
+      <div className="mt-3 space-y-2">
+        <p className="text-sm font-medium text-orange-600">{timeRange}</p>
+        {hh.details && <p className="text-sm text-gray-700">{hh.details}</p>}
+      </div>
+
+      {website && (
+        <a
+          href={website}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+        >
+          <ExternalLink size={14} />
+          Website
+        </a>
+      )}
     </article>
   );
 }

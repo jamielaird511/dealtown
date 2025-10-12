@@ -1,18 +1,15 @@
 import AdminHeader from "@/components/admin/AdminHeader";
 import { AdminTable } from "@/components/admin/AdminTable";
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import ConfirmDeleteButton from "@/components/admin/ConfirmDeleteButton";
-import {
-  getSupabaseServerComponentClient,
-  getSupabaseServerActionClient,
-} from "@/lib/supabaseClients";
+import { getSupabaseServerComponentClient } from "@/lib/supabaseClients";
+import { toggleHappyHourActive, deleteHappyHour } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+type DayLabel = (typeof DAY_LABELS)[number];
 
 function toMsg(err: any, fallback = "Unknown error") {
   try {
@@ -25,29 +22,34 @@ function toMsg(err: any, fallback = "Unknown error") {
   }
 }
 
-function fmtDays(v: unknown): string {
+function toDayIndices(v: unknown): number[] {
+  // Normalize DB → indices [0..6]
   if (Array.isArray(v)) {
-    const arr = v.map((x: any) =>
-      typeof x === "number" ? x : DAY_LABELS.indexOf(String(x))
-    );
-    return arr
-      .filter((n: any) => n >= 0)
-      .map((n: any) => DAY_LABELS[n])
-      .join(", ");
+    return (v as any[])
+      .map((x) =>
+        typeof x === "number" ? x : DAY_LABELS.indexOf(String(x) as DayLabel)
+      )
+      .filter((n) => Number.isInteger(n) && n >= 0 && n < 7);
   }
   if (typeof v === "string") {
+    // Handles "{1,2,3}" and "{Mon,Tue}" and "Mon,Tue"
     const parts = v
       .replace(/[{}]/g, "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    if (parts.length === 0) return "";
-    if (/^\d+$/.test(parts[0])) {
-      return parts.map((p) => DAY_LABELS[Number(p) % 7]).join(", ");
-    }
-    return parts.join(", ");
+    if (!parts.length) return [];
+    const nums = /^\d+$/.test(parts[0]);
+    return parts
+      .map((p) => (nums ? Number(p) : DAY_LABELS.indexOf(p as DayLabel)))
+      .filter((n) => Number.isInteger(n) && n >= 0 && n < 7);
   }
-  return "";
+  return [];
+}
+
+function fmtDays(v: unknown): string {
+  const idx = toDayIndices(v);
+  return idx.map((n) => DAY_LABELS[n]).join(", ");
 }
 
 async function getHappyHoursSafe(): Promise<{ rows: any[]; errorMsg?: string }> {
@@ -85,49 +87,6 @@ async function getHappyHoursSafe(): Promise<{ rows: any[]; errorMsg?: string }> 
     })) ?? [];
 
   return { rows };
-}
-
-// Actions (toggle/delete) unchanged in spirit; showing final forms:
-export async function toggleHappyHourActive(formData: FormData) {
-  "use server";
-  const id = String(formData.get("id"));
-  const next = String(formData.get("next")) === "true";
-  const supabase = getSupabaseServerActionClient();
-
-  try {
-    const { error } = await supabase
-      .from("happy_hours")
-      .update({ is_active: next })
-      .eq("id", id);
-    if (error) {
-      console.error("toggleHappyHourActive error:", error);
-      throw new Error(toMsg(error, "Failed to update happy hour status"));
-    }
-  } catch (e: any) {
-    revalidatePath("/admin/happy-hours");
-    redirect(`/admin/happy-hours?error=${encodeURIComponent(toMsg(e))}`);
-  }
-
-  revalidatePath("/admin/happy-hours");
-}
-
-export async function deleteHappyHour(formData: FormData) {
-  "use server";
-  const id = String(formData.get("id"));
-  const supabase = getSupabaseServerActionClient();
-
-  try {
-    const { error } = await supabase.from("happy_hours").delete().eq("id", id);
-    if (error) {
-      console.error("deleteHappyHour error:", error);
-      throw new Error(toMsg(error, "Failed to delete happy hour"));
-    }
-  } catch (e: any) {
-    revalidatePath("/admin/happy-hours");
-    redirect(`/admin/happy-hours?error=${encodeURIComponent(toMsg(e))}`);
-  }
-
-  revalidatePath("/admin/happy-hours");
 }
 
 export default async function HappyHoursPage({

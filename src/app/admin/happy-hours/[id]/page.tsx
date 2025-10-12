@@ -13,31 +13,41 @@ export const dynamic = "force-dynamic";
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 type DayIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
+function venueNameFrom(rel: any): string {
+  if (!rel) return "";
+  // Handles both: { name: ... } and [{ name: ... }, ...]
+  if (Array.isArray(rel)) return rel[0]?.name ?? "";
+  return rel.name ?? "";
+}
+
 function toDayIndices(v: unknown): DayIndex[] {
   if (Array.isArray(v)) {
-    // could be ["Mon","Tue"] or [1,2,3]
-    if (typeof v[0] === "number")
-      return (v as number[]).map((n) => n % 7) as DayIndex[];
+    if (typeof v[0] === "number") {
+      return (v as number[])
+        .map((n) => (n % 7) as DayIndex)
+        .filter((n) => n >= 0 && n <= 6);
+    }
     return (v as any[])
       .map((x) => DAY_LABELS.indexOf(String(x) as any))
-      .filter((n) => n >= 0) as DayIndex[];
+      .filter((n) => n >= 0 && n <= 6)
+      .map((n) => n as DayIndex);
   }
   if (typeof v === "string") {
-    // handle "{1,2,3}" or "{Mon,Tue}"
     const parts = v
       .replace(/[{}]/g, "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    if (parts.length === 0) return [];
-    if (/^\d+$/.test(parts[0])) {
+    if (parts.length && /^\d+$/.test(parts[0])) {
       return parts
-        .map((p) => parseInt(p, 10) % 7)
-        .filter((n) => !Number.isNaN(n)) as DayIndex[];
+        .map((p) => Number(p) % 7)
+        .filter((n) => n >= 0 && n <= 6)
+        .map((n) => n as DayIndex);
     }
     return parts
       .map((p) => DAY_LABELS.indexOf(p as any))
-      .filter((n) => n >= 0) as DayIndex[];
+      .filter((n) => n >= 0 && n <= 6)
+      .map((n) => n as DayIndex);
   }
   return [];
 }
@@ -118,13 +128,16 @@ export default async function EditHappyHourPage({ params }: PageProps) {
   }
 
   // Normalize days to indices for pre-checking
-  const selectedIdx = new Set(toDayIndices(hh.days));
+  const selectedIdx = new Set<DayIndex>(toDayIndices(hh.days));
 
   return (
     <section className="space-y-4">
       <AdminHeader
         title="Edit Happy Hour"
-        subtitle={hh.venues?.name ? `Venue: ${hh.venues.name}` : ""}
+        subtitle={(() => {
+          const vn = venueNameFrom(hh.venues);
+          return vn ? `Venue: ${vn}` : "";
+        })()}
         ctaHref="/admin/happy-hours"
         ctaLabel="Back to List"
       />
@@ -194,7 +207,8 @@ export default async function EditHappyHourPage({ params }: PageProps) {
           <div className="grid gap-2">
             <span className="text-sm font-medium">Days</span>
             <div className="flex flex-wrap gap-4">
-              {DAY_LABELS.map((label, idx) => {
+              {DAY_LABELS.map((label, i) => {
+                const idx = i as DayIndex;
                 const id = `day-${idx}`;
                 return (
                   <label key={label} htmlFor={id} className="flex items-center gap-2">
