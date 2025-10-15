@@ -1,5 +1,6 @@
 import { AdminCard } from "@/components/admin/AdminCard";
 import { requireAdmin } from "@/lib/auth";
+import SignOutButton from "@/components/admin/SignOutButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -9,9 +10,12 @@ export default async function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
-        <p className="text-sm text-gray-600 mt-1">Signed in as {user.email}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
+          <p className="text-sm text-gray-600 mt-1">Signed in as {user.email}</p>
+        </div>
+        <SignOutButton />
       </div>
       
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -1,5 +1,5 @@
 "use client";
-import { DOW_LABELS } from "@/lib/day";
+import { DOW_ORDER, DOW_LABELS } from "@/lib/day";
 
 type Props = {
   value: number[];
@@ -15,14 +15,14 @@ export default function DayPicker({ value, onChange }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        {DOW_LABELS.map((label, i) => (
+        {DOW_ORDER.map((dow, i) => (
           <button
-            key={i}
+            key={dow}
             type="button"
             className={`px-3 py-1 rounded-full border ${value.includes(i) ? "bg-black text-white" : ""}`}
             onClick={() => toggle(i)}
           >
-            {label}
+            {DOW_LABELS[dow]}
           </button>
         ))}
       </div>

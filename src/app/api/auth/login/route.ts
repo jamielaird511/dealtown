@@ -38,11 +38,31 @@ export async function POST(req: Request) {
   if (error) {
     const url = new URL("/login", req.url);
     url.searchParams.set("error", error.message);
+    // Preserve redirect param on error
+    const referer = req.headers.get("referer");
+    if (referer) {
+      const refererUrl = new URL(referer);
+      const redirectParam = refererUrl.searchParams.get("redirect");
+      if (redirectParam) {
+        url.searchParams.set("redirect", redirectParam);
+      }
+    }
     return NextResponse.redirect(url, { status: 303 });
   }
 
-  // Cookies are set by the helper; now navigate to /admin
-  return NextResponse.redirect(new URL("/admin", req.url), { status: 303 });
+  // Check for redirect parameter
+  const referer = req.headers.get("referer");
+  let redirectTo = "/admin"; // default
+  if (referer) {
+    const refererUrl = new URL(referer);
+    const redirectParam = refererUrl.searchParams.get("redirect");
+    if (redirectParam) {
+      redirectTo = redirectParam;
+    }
+  }
+
+  // Cookies are set by the helper; now navigate to redirect target
+  return NextResponse.redirect(new URL(redirectTo, req.url), { status: 303 });
 }
 
 export async function GET() {

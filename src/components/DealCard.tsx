@@ -1,81 +1,74 @@
 // src/components/DealCard.tsx
-"use client";
-
-import { ExternalLink, Share2 } from "lucide-react";
-import { moneyFromCents } from "@/lib/data";
-
-export type DealCardProps = {
-  deal: {
-    id: number;
-    title: string;
-    venue_name?: string | null;
-    venue_address?: string | null;
-    notes?: string | null;
-    website_url?: string | null;
-    price_cents?: number | null;
-  };
+type Deal = {
+  id: string | number;
+  title: string;
+  description?: string | null; // unified view field
+  notes?: string | null;       // fallback if any legacy view returns this
+  website_url?: string | null;
+  price_cents?: number | null;
+  venue_name?: string | null;
+  venue_address?: string | null;
 };
 
-export default function DealCard({ deal }: DealCardProps) {
-  const onShare = async () => {
-    const text = `${deal.title}${deal.venue_name ? ` @ ${deal.venue_name}` : ""}${
-      deal.price_cents != null ? ` — ${moneyFromCents(deal.price_cents)}` : ""
-    }`;
-    const url = typeof window !== "undefined" ? window.location.href : "";
+function formatCents(cents?: number | null) {
+  if (cents == null) return null;
+  return `$${(cents / 100).toFixed(2)}`;
+}
 
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "DealTown", text, url });
-      } else {
-        await navigator.clipboard.writeText(`${text}\n${url}`);
-        alert("Copied to clipboard!");
-      }
-    } catch {
-      // no-op if user cancels
-    }
-  };
+export default function DealCard({ deal }: { deal: Deal }) {
+  const price = formatCents(deal.price_cents);
+  const desc = deal.description ?? deal.notes ?? null;
 
   return (
-    <article className="rounded-xl border bg-white/70 shadow-sm p-4 flex flex-col gap-2 hover:bg-neutral-50 transition">
-      <div className="flex items-start justify-between gap-3">
+    <li className="rounded-lg border p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-4">
+        {/* LEFT: content */}
         <div className="min-w-0">
-          {deal.venue_name && <h3 className="font-semibold text-lg truncate">{deal.venue_name}</h3>}
+          {/* Venue first (prominent) */}
+          {deal.venue_name && (
+            <div className="text-base font-semibold text-gray-900">
+              {deal.venue_name}
+            </div>
+          )}
+          {/* Address (subtle) */}
           {deal.venue_address && (
-            <p className="text-sm text-black/60 truncate">{deal.venue_address}</p>
+            <div className="text-xs text-gray-500">
+              {deal.venue_address}
+            </div>
+          )}
+
+          {/* Deal title */}
+          <h3 className="mt-1 text-sm font-medium text-gray-900">
+            {deal.title}
+          </h3>
+
+          {/* Description / notes */}
+          {desc && (
+            <p className="mt-1 text-sm text-gray-700">
+              {desc}
+            </p>
+          )}
+
+          {/* Website link (optional) */}
+          {deal.website_url && (
+            <a
+              href={deal.website_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center text-xs text-blue-600 hover:underline"
+            >
+              Website
+            </a>
           )}
         </div>
-        {deal.price_cents != null && (
-          <span className="shrink-0 text-orange-600 font-semibold">
-            {moneyFromCents(deal.price_cents)}
-          </span>
+
+        {/* RIGHT: price badge (if any) */}
+        {price && (
+          <div className="shrink-0 rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-600">
+            {price}
+          </div>
         )}
       </div>
-
-      <p className="text-[15px]">{deal.title}</p>
-
-      {deal.notes && <p className="text-sm text-black/70">{deal.notes}</p>}
-
-      <div className="mt-1 flex items-center gap-3">
-        {deal.website_url && (
-          <a
-            href={deal.website_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-sm text-black/70 hover:text-black underline"
-          >
-            <ExternalLink size={16} />
-            Website
-          </a>
-        )}
-        <button
-          onClick={onShare}
-          className="ml-auto inline-flex items-center gap-1 text-sm rounded-full px-3 py-1 border hover:bg-neutral-100"
-          type="button"
-        >
-          <Share2 size={16} />
-          Share
-        </button>
-      </div>
-    </article>
+    </li>
   );
 }

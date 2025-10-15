@@ -1,5 +1,4 @@
-export const moneyFromCents = (v?: number | null) =>
-  typeof v === "number" ? (v / 100).toFixed(2) : "";
+export const moneyFromCents = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 export const centsFromMoney = (s?: string) => {
   if (!s) return null;

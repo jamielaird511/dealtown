@@ -19,7 +19,7 @@ export default async function EditDealPage({
     .from("deals")
     .select(
       `
-      id, title, day_of_week, is_active, venue_id, price_cents, notes,
+      id, title, day_of_week, is_active, venue_id, price_cents, description,
       venue:venues!deals_venue_id_fkey ( id, name, address, website_url )
     `
     )
@@ -123,9 +123,9 @@ export default async function EditDealPage({
         <div>
           <label className="block text-sm font-medium mb-1">Notes</label>
           <textarea
-            name="notes"
+            name="description"
             rows={3}
-            defaultValue={deal.notes ?? ""}
+            defaultValue={deal.description ?? ""}
             className="w-full rounded border px-3 py-2"
             placeholder="Optional details about the deal..."
           />

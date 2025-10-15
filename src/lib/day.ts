@@ -1,23 +1,22 @@
-export const DOW_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+export type DayKey = 'today'|'mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun';
+export const DAY_ORDER: DayKey[] = ['today','mon','tue','wed','thu','fri','sat','sun'];
 
-export function dayIndexFromQuery(q?: string | null): number | "today" {
-  if (!q || q === "today") return "today";
-  const map: Record<string, number> = {
-    sun: 0,
-    sunday: 0,
-    mon: 1,
-    monday: 1,
-    tue: 2,
-    tuesday: 2,
-    wed: 3,
-    wednesday: 3,
-    thu: 4,
-    thursday: 4,
-    fri: 5,
-    friday: 5,
-    sat: 6,
-    saturday: 6,
-  };
-  const key = q.toLowerCase();
-  return key in map ? map[key] : "today";
+// Short 3-letter keys the app uses everywhere.
+export const DOW_ORDER = ["mon","tue","wed","thu","fri","sat","sun"] as const;
+export type DOW = (typeof DOW_ORDER)[number];
+
+// Human labels
+export const DOW_LABELS: Record<DOW, string> = {
+  mon: "Mon",
+  tue: "Tue",
+  wed: "Wed",
+  thu: "Thu",
+  fri: "Fri",
+  sat: "Sat",
+  sun: "Sun",
+};
+
+export function labelForDay(d: DayKey) {
+  if (d === 'today') return 'Today';
+  return d.charAt(0).toUpperCase() + d.slice(1);
 }

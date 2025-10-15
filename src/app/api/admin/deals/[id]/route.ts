@@ -32,7 +32,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       String(fields.is_active ?? "true").toLowerCase()
     );
     const price_cents = toCents(fields.price ?? fields.price_cents);
-    const notes = fields.notes ? String(fields.notes).trim() || null : null;
+    const description = fields.description ? String(fields.description).trim() || null : null;
 
     // Get venue_id from form
     let venue_id = fields.venue_id ? Number(fields.venue_id) : null;
@@ -46,7 +46,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // Update the deal
     const { error: updErr } = await supabase
       .from("deals")
-      .update({ title, day_of_week, is_active, price_cents, notes, venue_id })
+      .update({ title, day_of_week, is_active, price_cents, description, venue_id })
       .eq("id", Number(params.id));
 
     if (updErr) {
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
       String(fields.is_active ?? "true").toLowerCase()
     );
     const price_cents = toCents(fields.price ?? fields.price_cents);
-    const notes = fields.notes ? String(fields.notes).trim() || null : null;
+    const description = fields.description ? String(fields.description).trim() || null : null;
 
     let venue_id = fields.venue_id ? Number(fields.venue_id) : null;
 
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
 
     const { error: updErr } = await supabase
       .from("deals")
-      .update({ title, day_of_week, is_active, price_cents, notes, venue_id })
+      .update({ title, day_of_week, is_active, price_cents, description, venue_id })
       .eq("id", Number(ctx.params.id));
 
     if (updErr) {
