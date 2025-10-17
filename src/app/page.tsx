@@ -5,13 +5,13 @@ export const revalidate = 0;
 
 import { useState } from "react";
 import dynamicImport from "next/dynamic";
-import TodayHappyHourSection from "@/components/TodayHappyHourSection";
 import DealsSection from "@/components/DealsSection";
 import { DayFilterProvider } from "@/components/day/DayFilterContext";
 import DayTabs from "@/components/day/DayTabs";
 import HeaderMenu from "@/components/HeaderMenu";
 import HeaderUserInfo from "@/components/HeaderUserInfo";
 import SubmitDealModal from "@/components/SubmitDealModal";
+import StickyNav from "@/components/StickyNav";
 
 const FuelCardPretty = dynamicImport(() => import("@/components/FuelCardPretty"), {
   ssr: false,
@@ -56,15 +56,17 @@ export default function Home({ searchParams }: { searchParams?: { day?: string }
       {/* Cheapest Fuel Card */}
       {enableFuel ? <FuelCardPretty /> : null}
 
+      {/* Sticky Navigation */}
+      <StickyNav />
+
       {/* Shared Day Filter */}
       <DayFilterProvider>
         <DayTabs />
 
         {/* Deals Section */}
-        <DealsSection />
-
-        {/* Happy Hours */}
-        <TodayHappyHourSection />
+        <section id="today-deals">
+          <DealsSection />
+        </section>
       </DayFilterProvider>
 
       {/* Submit Deal Modal */}

@@ -32,13 +32,13 @@ export default function DayTabs() {
         <button
           key={d}
           onClick={() => handleDayChange(d)}
-          className={`rounded-full px-3 py-1 text-sm border transition-colors ${
+          className={`rounded-full px-3 py-1 text-sm border transition-colors uppercase ${
             day === d 
               ? 'bg-orange-500 text-white border-orange-500 shadow-sm' 
               : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
           }`}
         >
-          {labelForDay(d)}
+          {d === "today" ? "today" : d}
         </button>
       ))}
     </div>

@@ -36,5 +36,14 @@ export async function updateHappyHour(id: string, payload: any) {
 
 export async function deleteHappyHour(id: string) {
   const supabase = supabaseAdmin;
-  return supabase.from("happy_hours").delete().eq("id", id);
+  const { data, error } = await supabase
+    .from("happy_hours")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    // throw detailed error so UI can show it
+    throw new Error(error.message || JSON.stringify(error));
+  }
+  return data;
 }

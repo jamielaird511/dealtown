@@ -62,6 +62,7 @@ export default function NewHappyHourPage() {
       website_url: form.website_url?.trim() || undefined,
       active_from: form.active_from || undefined,
       active_to: form.active_to || undefined,
+      // days: form.days (keep as numbers - schema will normalize to strings)
     };
 
     try {
@@ -74,14 +75,35 @@ export default function NewHappyHourPage() {
       const j = await res.json().catch(() => ({}));
 
       if (!res.ok || j?.error) {
-        setFlash({ type: "error", msg: j?.error ? String(j.error) : "Save failed" });
+        let errorMsg = "Save failed";
+        
+        if (j?.error) {
+          // Handle zod validation errors
+          if (typeof j.error === "object" && j.error.fieldErrors) {
+            const fieldErrors = Object.entries(j.error.fieldErrors)
+              .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(", ") : errors}`)
+              .join("; ");
+            errorMsg = `Validation errors: ${fieldErrors}`;
+          } else if (typeof j.error === "string") {
+            errorMsg = j.error;
+          } else if (j.error.message) {
+            errorMsg = j.error.message;
+          } else {
+            errorMsg = JSON.stringify(j.error);
+          }
+        }
+        
+        setFlash({ type: "error", msg: errorMsg });
         return;
       }
 
       // Success - redirect to list
       router.push("/admin/happy-hours");
     } catch (err: any) {
-      setFlash({ type: "error", msg: err?.message ?? "Network error" });
+      const errorMsg = typeof err === "string" 
+        ? err 
+        : err?.message ?? err?.error ?? JSON.stringify(err);
+      setFlash({ type: "error", msg: errorMsg });
     } finally {
       setSubmitting(false);
       setTimeout(() => setFlash(null), 3000);

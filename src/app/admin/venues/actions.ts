@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSupabaseServerActionClient } from "@/lib/supabaseClients";
+import { getSupabaseServiceClient } from "@/lib/supabaseServiceClient";
 
 export async function toggleVenueActive(formData: FormData) {
   const id = Number(formData.get("id"));
   const next = formData.get("next") === "true";
 
-  const supabase = getSupabaseServerActionClient();
+  const supabase = getSupabaseServiceClient();
   const { error } = await supabase.from("venues").update({ active: next }).eq("id", id);
 
   if (error) {
@@ -21,7 +22,7 @@ export async function toggleVenueActive(formData: FormData) {
 export async function deleteVenue(formData: FormData) {
   const id = Number(formData.get("id"));
 
-  const supabase = getSupabaseServerActionClient();
+  const supabase = getSupabaseServiceClient();
   const { error } = await supabase.from("venues").delete().eq("id", id);
 
   if (error) {

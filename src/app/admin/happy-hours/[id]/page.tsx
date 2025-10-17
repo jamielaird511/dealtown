@@ -86,7 +86,7 @@ export default async function EditHappyHourPage({ params }: PageProps) {
     const details = String(formData.get("details") ?? "").trim() || null;
     const is_active = formData.get("is_active") === "on";
 
-    // IMPORTANT: your DB keeps int[] indices (0=Sun..6=Sat)
+    // Keep days as numbers - schema will normalize to strings
     const days = formData
       .getAll("days")
       .map((v) => Number(v))
@@ -106,11 +106,10 @@ export default async function EditHappyHourPage({ params }: PageProps) {
       .maybeSingle();
 
     if (error) {
+      const errorMsg = error.message ?? "Failed to update happy hour";
       revalidatePath("/admin/happy-hours");
       redirect(
-        `/admin/happy-hours?error=${encodeURIComponent(
-          error.message ?? "Failed to update happy hour"
-        )}`
+        `/admin/happy-hours?error=${encodeURIComponent(errorMsg)}`
       );
     }
 
