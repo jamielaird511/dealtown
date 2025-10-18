@@ -6,6 +6,9 @@ import DealTownHeader from "@/components/DealTownHeader";
 export const metadata = {
   title: 'DealTown — Local deals in one place',
   description: 'All the best local deals in one place. Local deals, updated daily.',
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
