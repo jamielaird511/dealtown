@@ -52,7 +52,14 @@ export default function HappyHourCard({ hh }: { hh: HH }) {
       <div className="mt-3 space-y-2">
         {timeRange && (
           <div className="inline-flex items-center gap-2 text-sm">
-            <span className="inline-block rounded-full border px-2 py-0.5">
+            <span
+              className="
+                inline-flex items-center rounded-full
+                px-3 py-1 text-sm font-medium
+                bg-orange-50 text-orange-700 ring-1 ring-orange-200
+                hover:bg-orange-100
+              "
+            >
               {timeRange}
             </span>
           </div>

@@ -12,8 +12,8 @@ export default function Footer() {
         {" • "}
         <a href="/terms" className="hover:underline">Terms</a>
       </p>
-      <p className="mt-2 text-xs text-gray-400">
-        Local deals & fuel prices, updated daily.
+      <p className="text-xs text-muted-foreground">
+        Local deals, updated daily.
       </p>
     </footer>
   );
