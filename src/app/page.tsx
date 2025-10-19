@@ -8,7 +8,6 @@ import DealsSection from "@/components/DealsSection";
 import { DayFilterProvider } from "@/components/day/DayFilterContext";
 import DayTabs from "@/components/day/DayTabs";
 import HeaderUserInfo from "@/components/HeaderUserInfo";
-import StickyNav from "@/components/StickyNav";
 
 const FuelCardPretty = dynamicImport(() => import("@/components/FuelCardPretty"), {
   ssr: false,
@@ -26,9 +25,6 @@ export default function Home({ searchParams }: { searchParams?: { day?: string }
 
       {/* Cheapest Fuel Card */}
       {enableFuel ? <FuelCardPretty /> : null}
-
-      {/* Sticky Navigation */}
-      <StickyNav />
 
       {/* Shared Day Filter */}
       <DayFilterProvider>

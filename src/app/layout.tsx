@@ -2,6 +2,7 @@
 import "./globals.css";
 import Footer from "@/components/Footer";
 import DealTownHeader from "@/components/DealTownHeader";
+import StickyNav from "@/components/StickyNav";
 
 export const metadata = {
   title: 'DealTown — Local deals in one place',
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen flex flex-col">
         <DealTownHeader />
+        <StickyNav />
         <main className="flex-grow">{children}</main>
         <Footer />
       </body>

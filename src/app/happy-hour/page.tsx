@@ -1,4 +1,3 @@
-import StickyNav from "@/components/StickyNav";
 import HappyHourCard from "@/components/HappyHourCard";
 import { Metadata } from "next";
 
@@ -72,8 +71,6 @@ export default async function HappyHourPage({
 
   return (
     <main className="max-w-3xl mx-auto p-4">
-      <StickyNav />
-
       {/* Day selector box — matches Daily Deals look */}
       <DayBox active={day} />
 

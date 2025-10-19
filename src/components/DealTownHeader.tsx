@@ -9,8 +9,8 @@ export default function DealTownHeader() {
 
   return (
     <>
-      <header className="mx-auto max-w-4xl px-6 py-10 mb-2">
-        <div className="flex items-center justify-between">
+      <header className="mx-auto max-w-4xl px-6 py-3 sm:py-6 md:py-10 mb-2">
+        <div className="flex flex-col gap-2 sm:gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-3xl font-semibold tracking-tight brand-title">DealTown</h1>
@@ -22,7 +22,21 @@ export default function DealTownHeader() {
               All the best local deals in one place.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          
+          {/* Mobile actions row */}
+          <div className="flex sm:hidden gap-2 mt-1">
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="inline-flex items-center justify-center h-12 px-4 rounded-xl font-medium bg-orange-500 text-white"
+            >
+              💡 Submit a Deal
+            </button>
+            <HeaderMenu />
+          </div>
+          
+          {/* Desktop actions row */}
+          <div className="hidden md:flex items-center gap-3">
             <button
               type="button"
               onClick={() => setModalOpen(true)}

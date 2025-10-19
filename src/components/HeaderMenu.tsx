@@ -70,12 +70,10 @@ export default function HeaderMenu() {
           className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border bg-white shadow-lg"
         >
           <MenuItem href="/venues">Browse Venues</MenuItem>
-          <MenuItem href="/fuel">Fuel</MenuItem>
-          <MenuItem href="/fuel/submit">Submit Fuel Price</MenuItem>
-          <div className="my-1 h-px bg-gray-100" />
+          <div className="border-t my-1 border-neutral-200" />
 
           {!email ? (
-            <MenuItem href="/login">Sign in</MenuItem>
+            <MenuItem href="/login">Admin sign in</MenuItem>
           ) : (
             <>
               <MenuItem href="/admin">Admin Dashboard</MenuItem>

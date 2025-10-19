@@ -41,3 +41,22 @@ body {
   @apply rounded-2xl border bg-white p-5 shadow-sm;
   border-color: #eef0f3;
 }
+
+/* Hide scrollbar for horizontal pill strips */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none;    /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;            /* Chrome/Safari */
+}
+
+/* iOS momentum scroll for overflow containers */
+.ios-momentum {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Avoid pull-to-refresh within panel */
+.overscroll-contain {
+  overscroll-behavior: contain;
+}
