@@ -39,14 +39,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const lower = `${deal_title} ${description ?? ""}`.toLowerCase();
-    const banned = ["set menu", "standard menu", "lunch menu", "everyday price", "ongoing promotion"];
-    if (banned.some((p) => lower.includes(p))) {
-      return NextResponse.json(
-        { error: "Rejected: appears to be a regular/ongoing menu item, not a time-limited deal." },
-        { status: 422 }
-      );
-    }
 
     const sb = supabaseAdmin();
     const { data, error } = await sb
@@ -84,6 +76,7 @@ export async function POST(req: Request) {
         start_time,
         end_time,
         submitter_email,
+        category,
       });
     } catch (e) {
       console.warn("[email] submission notice failed:", e);

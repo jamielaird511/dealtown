@@ -1,55 +1,98 @@
-const RESEND_API = "https://api.resend.com/emails";
+import { Resend } from "resend";
 
-export type SubmissionEmailPayload = {
-  id: string | null;
-  venue_name: string;
-  deal_title: string;
+const resendKey = process.env.RESEND_API_KEY;
+if (!resendKey) {
+  console.warn("[email] RESEND_API_KEY missing; email sending will fail.");
+}
+const resend = new Resend(resendKey || "missing");
+
+type SendOpts = { to?: string; subject: string; html: string };
+
+export async function sendHtmlEmail({ to, subject, html }: SendOpts) {
+  const from = process.env.SUBMISSIONS_FROM_EMAIL || "DealTown <no-reply@dealtown.co.nz>";
+  const recipient = to || process.env.SUBMISSIONS_TO_EMAIL || "hello@dealtown.co.nz";
+  return resend.emails.send({ from, to: recipient, subject, html });
+}
+
+
+const DAY_LABELS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+function formatDays(days: unknown): string {
+  if (!Array.isArray(days) || days.length === 0) return "—";
+  const nums = (days as any[])
+    .map((d) => Number(String(d).trim()))
+    .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
+  return nums.length ? nums.map((n) => DAY_LABELS[n]).join(", ") : "—";
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  "daily-deal": "Daily Deal",
+  "daily_deal": "Daily Deal",
+  "daily deal": "Daily Deal",
+  "dailydeal": "Daily Deal",
+
+  "lunch-special": "Lunch Specials",
+  "lunch_special": "Lunch Specials",
+  "lunch-specials": "Lunch Specials",
+  "lunch_specials": "Lunch Specials",
+  "lunch specials": "Lunch Specials",
+  "lunchspecials": "Lunch Specials",
+
+  "happy-hour": "Happy Hour",
+  "happy_hour": "Happy Hour",
+  "happy hour": "Happy Hour",
+  "happyhour": "Happy Hour",
+};
+
+function formatCategory(cat: unknown): string {
+  const key = String(cat ?? "").toLowerCase();
+  return CATEGORY_LABELS[key] ?? "—";
+}
+
+export async function sendSubmissionEmailHTTP(payload: {
+  id?: string | number | null;
+  venue_name?: string;
+  deal_title?: string;
   description?: string | null;
-  days?: string[] | null;
+  days?: string[];
   start_time?: string | null;
   end_time?: string | null;
   submitter_email?: string | null;
-};
+  category?: string | null;
+}) {
+  const FROM = process.env.SUBMISSIONS_FROM_EMAIL!;
+  const TO = process.env.SUBMISSIONS_TO_EMAIL!;
+  const KEY = process.env.RESEND_API_KEY!;
 
-export async function sendSubmissionEmailHTTP(p: SubmissionEmailPayload) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.warn("[email] RESEND_API_KEY missing; skipping email.");
+  if (!KEY) {
+    console.warn("[resend] RESEND_API_KEY missing; skipping email send");
     return;
   }
-  const from = process.env.NOTIFY_FROM || "DealTown <notifications@dealtown.co.nz>";
-  const to = process.env.NOTIFY_TO || "jamie.laird@dealtown.co.nz";
+  const resend = new Resend(KEY);
 
-  const subject = `New Deal Submission: ${p.deal_title} @ ${p.venue_name}`;
-  const lines = [
-    `Venue: ${p.venue_name}`,
-    `Title: ${p.deal_title}`,
-    p.description ? `Description: ${p.description}` : null,
-    p.days?.length ? `Days: ${p.days.join(", ")}` : null,
-    (p.start_time || p.end_time) ? `Time: ${p.start_time ?? "—"} → ${p.end_time ?? "—"}` : null,
-    p.submitter_email ? `Submitted by: ${p.submitter_email}` : null,
-    p.id ? `Record ID: ${p.id}` : null,
-  ].filter(Boolean).join("\n");
+  const catLabel = formatCategory(payload.category);
+  const subject = `New Deal Submission${catLabel !== "—" ? ` (${catLabel})` : ""}: ${payload.deal_title ?? "(Untitled)"} — ${payload.venue_name ?? ""}`;
+  const html = `
+    <h2>New Deal Submission</h2>
+    <table style="font-family:system-ui,Segoe UI,Arial;font-size:14px;border-collapse:collapse" border="1" cellpadding="6">
+      <tr><th align="left">Venue</th><td>${payload.venue_name ?? ""}</td></tr>
+      <tr><th align="left">Title</th><td>${payload.deal_title ?? ""}</td></tr>
+      <tr><th align="left">Days</th><td>${formatDays(payload.days)}</td></tr>
+      <tr><th align="left">Time</th><td>${payload.start_time ?? ""} – ${payload.end_time ?? ""}</td></tr>
+      <tr><th align="left">Category</th><td>${formatCategory(payload.category)}</td></tr>
+      <tr><th align="left">Notes</th><td>${payload.description ?? ""}</td></tr>
+      <tr><th align="left">Submitter</th><td>${payload.submitter_email ?? ""}</td></tr>
+      <tr><th align="left">Submission ID</th><td>${payload.id ?? ""}</td></tr>
+    </table>
+    <p style="font-family:system-ui,Segoe UI,Arial;font-size:12px;color:#666">Sent by DealTown</p>
+  `;
 
-  const html = `<div>
-    <h2 style="font-family:system-ui;margin:0 0 8px 0;">New Deal Submission</h2>
-    <pre style="font-family:ui-monospace,Menlo,Consolas,monospace;background:#f6f6f6;padding:12px;border-radius:10px;white-space:pre-wrap">${lines}</pre>
-    <p style="font-family:system-ui;margin-top:12px">
-      <a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin/submissions">Open submissions</a>
-    </p>
-  </div>`;
-
-  const res = await fetch(RESEND_API, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from, to, subject, html }),
+  const result = await resend.emails.send({
+    from: FROM,
+    to: TO,
+    subject,
+    html,
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    console.warn("[email] Resend HTTP failed:", res.status, text);
-  }
+  console.log("[resend] sent", result?.data?.id ?? result);
 }

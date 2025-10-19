@@ -50,10 +50,13 @@ export default function SubmitDealModal({ open, onClose, apiPath = "/api/deal-su
             <div className="mt-3 text-sm text-gray-600">
               DealTown is for <strong>time-limited, genuine discounts or specials</strong> — something cheaper or better than the usual offer.
               <div className="mt-2">
-                <span className="font-medium">✅ Examples:</span> $8 pints today 4–6pm, Half-price pizza Tuesdays.
+                <span className="font-medium">✅ Examples:</span> $8 pints today 4–6pm, Half-price pizza Tuesdays, $15 Lunch Menu.
               </div>
               <div>
-                <span className="font-medium">❌ Not accepted:</span> standard lunch menus or ongoing promotions at regular price.
+                <span className="font-medium">🔎 We review:</span> time-limited deals, genuine discounts, or specials.
+              </div>
+              <div>
+                <span className="font-medium">🚫 Not accepted:</span> ongoing regular prices with no time limit.
               </div>
               <div className="mt-1">All submissions are reviewed before publishing.</div>
             </div>

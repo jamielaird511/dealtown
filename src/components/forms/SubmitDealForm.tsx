@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +30,9 @@ type Props = {
 };
 
 export default function SubmitDealForm({ onSuccess, showCard = true, className = "" }: Props) {
+  const mountedAt = useRef<number>(0);
+  useEffect(() => { mountedAt.current = Date.now(); }, []);
+
   const [formData, setFormData] = useState<Partial<SubmissionInput>>({
     type: "daily-deal",
     venue_name: "",
@@ -37,6 +40,7 @@ export default function SubmitDealForm({ onSuccess, showCard = true, className =
     website_url: "",
     notes: "",
     submitter_email: "",
+    days: [],
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,9 +56,7 @@ export default function SubmitDealForm({ onSuccess, showCard = true, className =
     
     if (type === "checkbox") {
       const checked = (e.target as HTMLInputElement).checked;
-      if (name === "weekdays") {
-        setFormData((prev) => ({ ...prev, weekdays: checked }));
-      } else if (name.startsWith("day_")) {
+      if (name.startsWith("day_")) {
         const dayValue = parseInt(name.split("_")[1]);
         setFormData((prev) => {
           const currentDays = (prev.days as number[]) || [];
@@ -84,45 +86,35 @@ export default function SubmitDealForm({ onSuccess, showCard = true, className =
       // Validate form data
       const validatedData = SubmissionSchema.parse(formData);
       
-      // Determine API endpoint based on type
-      let apiEndpoint = "";
-      let payload: any = { ...validatedData, is_approved: false };
-      
-      switch (validatedData.type) {
-        case "daily-deal":
-          apiEndpoint = "/api/deals";
-          payload = {
-            venue_name: validatedData.venue_name,
-            title: validatedData.title,
-            price_cents: validatedData.price,
-            description: validatedData.notes,
-            days: validatedData.days,
-            start_time: validatedData.start_time,
-            end_time: validatedData.end_time,
-            website_url: validatedData.website_url,
-            submitter_email: validatedData.submitter_email,
-            is_approved: false,
-          };
-          break;
-        case "lunch-special":
-          apiEndpoint = "/api/lunch-specials";
-          break;
-        case "happy-hour":
-          apiEndpoint = "/api/happy-hours";
-          payload = {
-            venue_name: validatedData.venue_name,
-            days: validatedData.days,
-            start_time: validatedData.start_time,
-            end_time: validatedData.end_time,
-            description: validatedData.notes,
-            website_url: validatedData.website_url,
-            submitter_email: validatedData.submitter_email,
-            is_approved: false,
-          };
-          break;
-      }
+      // Prepare payload for email submission
+      const dealTitle = 
+        validatedData.type === "daily-deal" ? validatedData.title :
+        validatedData.type === "lunch-special" ? validatedData.banner_title :
+        validatedData.type === "happy-hour" ? validatedData.offer_summary || "" :
+        "";
 
-      const response = await fetch(apiEndpoint, {
+      console.log("FORM TYPE:", validatedData.type);
+      const payload = {
+        venue_name: validatedData.venue_name,
+        deal_title: dealTitle,
+        description: validatedData.notes,
+        days: Array.isArray(validatedData.days)
+          ? validatedData.days.map((d: any) => String((Number(d) + 1) % 7))
+          : validatedData.days != null
+          ? [String((Number(validatedData.days) + 1) % 7)]
+          : [],
+        start_time: validatedData.start_time,
+        end_time: validatedData.end_time,
+        submitter_email: validatedData.submitter_email,
+        category: validatedData.type,
+        company: "", // honeypot
+        ttfb_ms: Date.now() - mountedAt.current, // anti-bot timing
+      };
+
+      console.info("[submit] payload", payload);
+      console.log("SUBMIT PAYLOAD:", payload);
+
+      const response = await fetch("/api/deal-submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -143,14 +135,10 @@ export default function SubmitDealForm({ onSuccess, showCard = true, className =
           website_url: "",
           notes: "",
           submitter_email: "",
+          days: [],
         });
         
-        // Call onSuccess callback if provided (e.g., to close modal)
-        if (onSuccess) {
-          setTimeout(() => {
-            onSuccess();
-          }, 1500);
-        }
+        // Note: onSuccess will be called when user clicks "Close" button
       } else {
         setSubmitStatus({
           type: "error",
@@ -173,12 +161,20 @@ export default function SubmitDealForm({ onSuccess, showCard = true, className =
         <div className="text-center py-8">
           <div className="text-green-600 text-lg font-semibold mb-2">Success!</div>
           <div className="text-gray-600 mb-4">{submitStatus.message}</div>
-          <Button onClick={() => setSubmitStatus({ type: null, message: "" })}>
-            Submit Another Deal
+          <Button onClick={() => {
+            setSubmitStatus({ type: null, message: "" });
+            if (onSuccess) {
+              onSuccess();
+            }
+          }}>
+            Close
           </Button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className={className}>
+          {/* Honeypot */}
+          <input name="company" autoComplete="off" tabIndex={-1} aria-hidden="true" className="hidden" />
+          
           <div className="space-y-4">
             {submitStatus.type === "error" && (
               <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
@@ -386,9 +382,10 @@ export default function SubmitDealForm({ onSuccess, showCard = true, className =
                   <Input
                     id="banner_title"
                     name="banner_title"
-                    value={formData.banner_title || "$15 Lunch Menu"}
+                    value={formData.banner_title || ""}
                     onChange={handleChange}
                     required
+                    placeholder="e.g. $15 Lunch Menu"
                     className="min-h-[44px] text-sm"
                   />
                 </div>
@@ -408,31 +405,31 @@ export default function SubmitDealForm({ onSuccess, showCard = true, className =
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-base font-semibold">Available Days</label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="weekdays"
-                      checked={formData.weekdays || false}
-                      onChange={handleChange}
-                      className="mr-2"
-                    />
-                    Weekdays (Mon–Fri)
+                  <label className="text-base font-semibold">
+                    Available Day(s) <span className="text-gray-500 text-xs">(choose one or more)</span>
                   </label>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {WEEKDAYS.map((day) => (
-                      <label key={day.value} className="flex items-center">
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => (
+                      <label
+                        key={i}
+                        className={`flex items-center justify-center rounded-full border px-3 py-2 text-sm select-none cursor-pointer ${
+                          formData.days?.includes(i)
+                            ? "bg-orange-500 text-white border-orange-500"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
                         <input
                           type="checkbox"
-                          name={`day_${day.value}`}
-                          checked={formData.days?.includes(day.value) || false}
+                          name={`day_${i}`}
+                          checked={formData.days?.includes(i) || false}
                           onChange={handleChange}
-                          className="mr-2"
+                          className="hidden"
                         />
-                        <span className="text-sm">{day.label}</span>
+                        <span>{day}</span>
                       </label>
                     ))}
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">Pick at least one day (required)</p>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -484,29 +481,52 @@ export default function SubmitDealForm({ onSuccess, showCard = true, className =
             {formData.type === "happy-hour" && (
               <>
                 <div className="space-y-2">
-                  <label className="text-base font-semibold">
-                    Available Days <span className="text-destructive">*</span>
+                  <label htmlFor="offer_summary" className="text-base font-semibold">
+                    Offer/Title <span className="text-destructive">*</span>
                   </label>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {WEEKDAYS.map((day) => (
-                      <label key={day.value} className="flex items-center">
+                  <Input
+                    id="offer_summary"
+                    name="offer_summary"
+                    value={formData.offer_summary || ""}
+                    onChange={handleChange}
+                    required
+                    placeholder="e.g., $8 pints 4–6pm"
+                    className="min-h-[44px] text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-base font-semibold">
+                    Available Day(s) <span className="text-destructive">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => (
+                      <label
+                        key={i}
+                        className={`flex items-center justify-center rounded-full border px-3 py-2 text-sm select-none cursor-pointer ${
+                          formData.days?.includes(i)
+                            ? "bg-orange-500 text-white border-orange-500"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
                         <input
                           type="checkbox"
-                          name={`day_${day.value}`}
-                          checked={formData.days?.includes(day.value) || false}
+                          name={`day_${i}`}
+                          checked={formData.days?.includes(i) || false}
                           onChange={handleChange}
-                          className="mr-2"
+                          className="hidden"
                         />
-                        <span className="text-sm">{day.label}</span>
+                        <span>{day}</span>
                       </label>
                     ))}
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">Pick at least one day (required)</p>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <label htmlFor="start_time" className="text-base font-semibold">
-                      Start Time <span className="text-destructive">*</span>
+                      Start Time
                     </label>
                     <Input
                       id="start_time"
@@ -514,14 +534,13 @@ export default function SubmitDealForm({ onSuccess, showCard = true, className =
                       type="time"
                       value={formData.start_time || ""}
                       onChange={handleChange}
-                      required
                       className="min-h-[44px] text-sm"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <label htmlFor="end_time" className="text-base font-semibold">
-                      End Time <span className="text-destructive">*</span>
+                      End Time
                     </label>
                     <Input
                       id="end_time"
@@ -529,24 +548,9 @@ export default function SubmitDealForm({ onSuccess, showCard = true, className =
                       type="time"
                       value={formData.end_time || ""}
                       onChange={handleChange}
-                      required
                       className="min-h-[44px] text-sm"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="offer_summary" className="text-base font-semibold">
-                    Offer Summary (optional)
-                  </label>
-                  <Input
-                    id="offer_summary"
-                    name="offer_summary"
-                    value={formData.offer_summary || ""}
-                    onChange={handleChange}
-                    placeholder="e.g., $8 house pints, 4–6pm"
-                    className="min-h-[44px] text-sm"
-                  />
                 </div>
               </>
             )}
@@ -566,6 +570,7 @@ export default function SubmitDealForm({ onSuccess, showCard = true, className =
                     website_url: "",
                     notes: "",
                     submitter_email: "",
+                    days: [],
                   })
                 }
               >
@@ -583,7 +588,13 @@ export default function SubmitDealForm({ onSuccess, showCard = true, className =
       <Card>
         <CardHeader>
           <CardTitle>Deal Details</CardTitle>
-          <CardDescription>Fill in the information about the deal</CardDescription>
+          <CardDescription>
+            DealTown is for <strong>time-limited or genuine local specials</strong> — anything that offers better value than the usual menu.<br />
+            ✅ <strong>Examples:</strong> $8 pints today 4–6pm, Half-price pizza Tuesdays, $15 Lunch Menu.<br />
+            🔎 <strong>We review:</strong> time-limited deals, genuine discounts, or specials.<br />
+            🚫 <strong>Not accepted:</strong> ongoing regular prices with no time limit.<br />
+            🔍 <strong>All submissions are reviewed before publishing.</strong>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {formContent}

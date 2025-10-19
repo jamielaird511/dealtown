@@ -6,17 +6,30 @@ const BaseSubmissionSchema = z.object({
   venue_name: z.string().trim().min(1, "Venue name is required"),
   venue_suburb: z.string().trim().optional(),
   website_url: z.string().trim().url().optional().or(z.literal("")),
-  notes: z.string().trim().min(10, "Notes must be at least 10 characters").max(240, "Notes must be less than 240 characters").optional().or(z.literal("")),
+  notes: z.string().trim().max(240, "Notes must be less than 240 characters").optional().or(z.literal("")),
   submitter_email: z.string().trim().email("Valid email is required"),
 });
 
 // Helper function to parse price to cents
-const parsePriceToCents = (price?: string): number | null => {
-  if (!price || price.trim() === "") return null;
-  const cleaned = price.replace(/[$\s]/g, "");
-  const num = parseFloat(cleaned);
-  if (isNaN(num) || num < 0) return null;
-  return Math.round(num * 100);
+const parsePriceToCents = (price?: string | number): number | null => {
+  if (!price) return null;
+  
+  // Handle number input
+  if (typeof price === "number") {
+    if (isNaN(price) || price < 0) return null;
+    return Math.round(price * 100);
+  }
+  
+  // Handle string input
+  if (typeof price === "string") {
+    if (price.trim() === "") return null;
+    const cleaned = price.replace(/[$\s]/g, "");
+    const num = parseFloat(cleaned);
+    if (isNaN(num) || num < 0) return null;
+    return Math.round(num * 100);
+  }
+  
+  return null;
 };
 
 // Time validation helper
@@ -26,7 +39,7 @@ const timeSchema = z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid
 const DailyDealBase = BaseSubmissionSchema.extend({
   type: z.literal("daily-deal"),
   title: z.string().trim().min(1, "Title is required"),
-  price: z.string().optional().transform((val) => parsePriceToCents(val)),
+  price: z.union([z.string().trim(), z.number()]).optional().transform((val) => parsePriceToCents(val)),
   days: z.array(z.number().min(0).max(6)).min(1, "Select at least one day"),
   start_time: timeSchema,
   end_time: timeSchema,
@@ -35,7 +48,7 @@ const DailyDealBase = BaseSubmissionSchema.extend({
 const LunchSpecialBase = BaseSubmissionSchema.extend({
   type: z.literal("lunch-special"),
   banner_title: z.string().trim().min(1, "Banner title is required").default("$15 Lunch Menu"),
-  price_from: z.string().optional().transform((val) => parsePriceToCents(val)),
+  price_from: z.union([z.string().trim(), z.number()]).optional().transform((val) => parsePriceToCents(val)),
   weekdays: z.boolean().default(true),
   days: z.array(z.number().min(0).max(6)).min(0).max(6),
   start_time: timeSchema,
@@ -48,7 +61,7 @@ const HappyHourBase = BaseSubmissionSchema.extend({
   days: z.array(z.number().min(0).max(6)).min(1, "At least one day must be selected"),
   start_time: timeSchema,
   end_time: timeSchema,
-  offer_summary: z.string().trim().max(200, "Offer summary must be less than 200 characters").optional().or(z.literal("")),
+  offer_summary: z.string().trim().min(3, "Offer summary is required (minimum 3 characters)"),
 });
 
 // Build the union over the base objects only
