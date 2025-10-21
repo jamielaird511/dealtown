@@ -1,96 +1,69 @@
-import HappyHourCard from "@/components/HappyHourCard";
-import { Metadata } from "next";
+import { getSupabaseServerComponentClient } from '@/lib/supabaseClients';
+import HappyHourClient from './HappyHourClient';
 
-export const metadata: Metadata = {
-  title: "Happy Hour | DealTown Queenstown",
-  description: "Find today's best Happy Hour deals in Queenstown.",
-};
+export const revalidate = 60;
 
-const DAYS = ["today","mon","tue","wed","thu","fri","sat","sun"] as const;
-type DayKey = typeof DAYS[number];
+export default async function HappyHourPage() {
+  const supabase = getSupabaseServerComponentClient();
 
-function cap(d: DayKey) {
-  if (d === "today") return "Today";
-  return d.toUpperCase();
-}
+  const { data, error } = await supabase
+    .from("happy_hours")
+    .select(`
+      id,
+      title,
+      details,
+      price_cents,
+      start_time,
+      end_time,
+      days,
+      is_active,
+      venue:venues!happy_hours_venue_id_fkey(name, address, suburb)
+    `)
+    .eq("is_active", true);
 
-function DayBox({ active }: { active: DayKey }) {
-  const chips = DAYS.map((d) => {
-    const href = `/happy-hour?day=${d}`;
-    const isActive = d === active;
+  if (error) {
+    console.error("[happy hour] fetch error", error);
+  }
 
-    return (
-      <a
-        key={d}
-        href={href}
-        className={[
-          "px-3 py-1.5 rounded-full border text-sm transition",
-          isActive
-            ? "bg-orange-500 text-white border-orange-500"
-            : "bg-white hover:bg-orange-50"
-        ].join(" ")}
-      >
-        {cap(d)}
-      </a>
-    );
-  });
+  // Map strings/numbers -> 0..6 (Sun..Sat)
+  const dayMap: Record<string, number> = {
+    sun: 0, sunday: 0,
+    mon: 1, monday: 1,
+    tue: 2, tues: 2, tuesday: 2,
+    wed: 3, weds: 3, wednesday: 3,
+    thu: 4, thur: 4, thurs: 4, thursday: 4,
+    fri: 5, friday: 5,
+    sat: 6, saturday: 6,
+  };
 
-  return (
-    <div className="mt-2 rounded-2xl border bg-white p-3">
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-sm font-medium text-gray-600">Day</span>
-        <div className="flex gap-2 flex-wrap">{chips}</div>
-      </div>
-    </div>
-  );
-}
+  const normalizeDays = (arr: unknown): number[] | null => {
+    if (!arr || !Array.isArray(arr) || arr.length === 0) return null; // null = show every day
+    const out: number[] = [];
+    for (const v of arr) {
+      if (typeof v === "number") out.push(v >= 1 && v <= 7 ? v % 7 : v); // 1..7 -> 0..6
+      else if (typeof v === "string") {
+        const k = v.trim().toLowerCase();
+        if (k in dayMap) out.push(dayMap[k]);
+      }
+    }
+    return out.length ? Array.from(new Set(out)).sort((a, b) => a - b) : null;
+  };
 
-async function fetchHappy(day: string) {
-  // same absolute-URL logic you already have
-  const { headers } = await import("next/headers");
-  const h = headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? process.env.VERCEL_URL ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "development" ? "http" : "https");
-  const envBase = process.env.NEXT_PUBLIC_BASE_URL?.trim();
-  const base = envBase && /^https?:\/\//i.test(envBase) ? envBase : `${proto}://${host}`;
+  const items = (data ?? []).map((row: any) => ({
+    id: row.id,
+    notes: row.details ?? null,
+    // optional price badge if you want it
+    price: row.price_cents != null ? row.price_cents / 100 : null,
 
-  const res = await fetch(`${base}/api/happy-hour?day=${encodeURIComponent(day)}`, { cache: "no-store" });
-  if (!res.ok) return { items: [] as any[] };
-  return res.json();
-}
+    start_time: row.start_time,
+    end_time: row.end_time,
 
-export default async function HappyHourPage({
-  searchParams,
-}: {
-  searchParams?: { [k: string]: string | string[] | undefined };
-}) {
-  const dayParam = (Array.isArray(searchParams?.day) ? searchParams?.day[0] : searchParams?.day) ?? "today";
-  const day = (DAYS as readonly string[]).includes(dayParam) ? (dayParam as DayKey) : "today";
+    // 👇 normalize happy_hours.days -> client expected days_of_week
+    days_of_week: normalizeDays(row.days),
 
-  const { items } = await fetchHappy(day);
+    venueName: row.venue?.name ?? null,
+    addressLine: [row.venue?.address, row.venue?.suburb].filter(Boolean).join(", ") || null,
+  }));
 
-  return (
-    <main className="max-w-3xl mx-auto p-4">
-      {/* Day selector box — matches Daily Deals look */}
-      <DayBox active={day} />
-
-      {/* List */}
-      <section className="mt-4 rounded-2xl border bg-white p-4">
-        <h2 className="text-2xl font-bold">
-          Happy <span className="text-orange-500">Hour</span>
-        </h2>
-
-        <div className="mt-4 grid gap-3">
-          {items.map((it: any) => (
-            <HappyHourCard key={it.id} hh={it} />
-          ))}
-          {items.length === 0 && (
-            <div className="text-sm text-gray-600">
-              No happy hours listed for {day === "today" ? "Today" : day.toUpperCase()}.
-            </div>
-          )}
-        </div>
-      </section>
-    </main>
-  );
+  return <HappyHourClient items={items} />;
 }
