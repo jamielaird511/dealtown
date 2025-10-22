@@ -1,4 +1,5 @@
 import React from 'react';
+import ShareButton from './ShareButton';
 
 export type DealCardProps = {
   venueName: string | null;
@@ -48,6 +49,15 @@ export default function DealCard({
             {badgeText}
           </div>
         ) : null}
+      </div>
+
+      {/* Actions */}
+      <div className="mt-3 flex items-center gap-4">
+        <ShareButton
+          variant="pill"
+          title={`${dealTitle || 'Deal'} at ${venueName} – DealTown`}
+          text={`Found a deal at ${venueName}`}
+        />
       </div>
     </li>
   );

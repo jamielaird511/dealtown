@@ -1,4 +1,4 @@
-import ShareButton from "@/components/ShareButton";
+import ShareButton from "@/components/ui/ShareButton";
 
 type Venue = { name?: string; address?: string; website_url?: string };
 type HH = {
@@ -42,10 +42,9 @@ export default function HappyHourCard({ hh }: { hh: HH }) {
         {venueAddress && <p className="text-sm text-gray-600">{venueAddress}</p>}
         </div>
         <ShareButton
-          venueName={venueName}
-          description={hh.description}
-          website={website ?? null}
-          timeRange={timeRange}
+          variant="pill"
+          title={`Happy Hour at ${venueName} – DealTown`}
+          text={`Happy Hour: ${hh.title ?? "Great specials"} at ${venueName}`}
         />
       </div>
 

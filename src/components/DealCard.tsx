@@ -1,4 +1,5 @@
 // src/components/DealCard.tsx
+import ShareButton from "@/components/ui/ShareButton";
 type Deal = {
   id: string | number;
   title: string;
@@ -68,6 +69,15 @@ export default function DealCard({ deal }: { deal: Deal }) {
             {price}
           </div>
         )}
+      </div>
+
+      {/* Actions */}
+      <div className="mt-3 flex items-center gap-4">
+        <ShareButton
+          variant="pill"
+          title={`${deal.title} at ${deal.venue_name} – DealTown`}
+          text={`Found a deal at ${deal.venue_name}`}
+        />
       </div>
     </li>
   );
