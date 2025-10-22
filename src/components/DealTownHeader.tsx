@@ -21,6 +21,10 @@ export default function DealTownHeader() {
             <p className="text-sm text-muted-foreground">
               All the best local deals in one place.
             </p>
+            {/* tagline */}
+            <p className="mt-1 text-sm text-muted-foreground/90">
+              Find a deal. <span className="font-medium">Share a deal.</span>
+            </p>
           </div>
           
           {/* Mobile actions row */}
