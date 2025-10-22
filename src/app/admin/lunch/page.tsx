@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { getSupabaseServerComponentClient } from '@/lib/supabaseClients';
 
-function formatDays(days?: number[] | null) {
-  if (!days || days.length === 0) return '—';
-  const map = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  return days.map(i => map[i] ?? String(i)).join(', ');
+const DAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function formatDays(arr?: number[] | null) {
+  if (!arr || arr.length === 0) return '—';
+  return [...arr].sort((a,b)=>a-b).map(i => DAY[i]).join(', ');
 }
 
 function to12h(hhmm?: string | null) {
@@ -25,11 +26,11 @@ function formatTimeRange(start?: string | null, end?: string | null) {
 export default async function AdminLunchPage() {
   const supabase = getSupabaseServerComponentClient();
   const { data, error } = await supabase
-    .from('lunch_menus')
+    .from('lunch_specials')
     .select(`
-      id, title, description, price, is_active,
-      days_of_week, start_time, end_time,
-      venue:venues(name, address, suburb)
+      id, title, description, price_cents, is_active,
+      days, start_time, end_time,
+      venue_name, venue_address
     `)
     .order('is_active', { ascending: false })
     .order('title', { ascending: true });
@@ -77,7 +78,7 @@ export default async function AdminLunchPage() {
               </tr>
             ) : (
               rows.map((row: any) => {
-                const days = formatDays(row.days_of_week);
+                const days = formatDays(row.days);
                 const time = formatTimeRange(row.start_time, row.end_time);
                 return (
                   <tr key={row.id} className="border-t align-top">
@@ -94,9 +95,9 @@ export default async function AdminLunchPage() {
                     </td>
 
                     <td className="py-4 px-2">
-                      <div className="font-medium">{row.venue?.name ?? '—'}</div>
+                      <div className="font-medium">{row.venue_name ?? '—'}</div>
                       <div className="text-xs text-neutral-500">
-                        {[row.venue?.address, row.venue?.suburb].filter(Boolean).join(', ') || '—'}
+                        {row.venue_address || '—'}
                       </div>
                       {/* Optional: show title under venue, like HH shows offer lines */}
                       {row.title && <div className="text-xs mt-1 opacity-80">{row.title}</div>}
@@ -105,7 +106,7 @@ export default async function AdminLunchPage() {
                     <td className="py-4 px-2 whitespace-pre">{days}</td>
                     <td className="py-4 px-2">{time}</td>
                     <td className="py-4 px-2">
-                      {row.price != null ? `— $${Number(row.price).toFixed(0)}`.replace('— ','$') : '—'}
+                      {row.price_cents != null ? `$${(row.price_cents / 100).toFixed(2)}` : '—'}
                     </td>
                     <td className="py-4 px-2">
                       {row.description ? (
@@ -123,14 +124,14 @@ export default async function AdminLunchPage() {
                         <form
                           action={`/api/lunch/${row.id}`}
                           method="post"
-                          onSubmit={(e) => {
-                            // This inline confirm matches the HH UX.
-                            // @ts-ignore
-                            if (!confirm('Delete this lunch menu?')) e.preventDefault();
-                          }}
                         >
                           <input type="hidden" name="_method" value="DELETE" />
-                          <button type="submit" className="text-red-600 hover:underline">Delete</button>
+                          <button 
+                            type="submit" 
+                            className="text-red-600 hover:underline"
+                          >
+                            Delete
+                          </button>
                         </form>
                       </div>
                     </td>

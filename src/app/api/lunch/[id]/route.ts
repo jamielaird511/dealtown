@@ -1,42 +1,39 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseServerActionClient } from '@/lib/supabaseClients';
+import { getSupabaseServiceRoleClient } from '@/lib/supabaseClients';
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const supabase = getSupabaseServerActionClient();
-  const form = await req.formData();
-  const method = String(form.get('_method') ?? 'PATCH').toUpperCase();
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+  const supabase = getSupabaseServiceRoleClient();
+  const body = await req.json();
 
-  const toDays = (vals: FormDataEntryValue[] | null): number[] | null => {
-    if (!vals) return null;
-    const arr = Array.isArray(vals) ? vals : [vals];
-    const nums = arr.map((v:any)=>Number(v)).filter((n:number)=>Number.isFinite(n) && n>=0 && n<=6);
-    return nums.length ? nums : null;
+  const update = {
+    venue_id: body.venue_id ?? null,
+    title: body.title ?? null,
+    description: body.description ?? null,
+    start_time: body.start_time ?? null,
+    end_time: body.end_time ?? null,
+    price_cents: body.price_cents ?? null,
+    days: Array.isArray(body.days) ? body.days : null,  // <--
+    is_active: body.is_active ?? true,
   };
 
-  if (method === 'PATCH') {
-    const payload = {
-      title: String(form.get('title') ?? '').trim(),
-      venue_id: form.get('venue_id') != null ? Number(form.get('venue_id')) : null,
-      description: (form.get('description') as string) ?? null,
-      price: form.get('price') ? Number(form.get('price')) : null,
-      is_active: form.get('is_active') ? true : false,
-      days_of_week: toDays(form.getAll('days_of_week[]')),
-      start_time: form.get('start_time') ? String(form.get('start_time')) : null,
-      end_time:   form.get('end_time') ? String(form.get('end_time')) : null,
-    };
-    if (!payload.title || !payload.venue_id) {
-      return NextResponse.json({ error: 'title and venue_id are required' }, { status: 400 });
-    }
-    const { error } = await supabase.from('lunch_menus').update(payload).eq('id', params.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.redirect(new URL('/admin/lunch', req.url));
-  }
+  const { data, error } = await supabase
+    .from('lunch_menus')
+    .update(update)
+    .eq('id', params.id)
+    .select();
 
-  if (method === 'DELETE') {
-    const { error } = await supabase.from('lunch_menus').delete().eq('id', params.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.redirect(new URL('/admin/lunch', req.url));
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ ok: true, data });
+}
 
-  return NextResponse.json({ error: 'Unsupported method' }, { status: 405 });
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  const supabase = getSupabaseServiceRoleClient();
+
+  const { error } = await supabase
+    .from('lunch_menus')
+    .delete()
+    .eq('id', params.id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ ok: true });
 }

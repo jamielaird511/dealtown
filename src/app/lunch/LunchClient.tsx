@@ -42,16 +42,25 @@ export default function LunchClient({ items }: { items: Item[] }) {
           <div className="text-neutral-600">No lunch specials for this day yet.</div>
         ) : (
           <ul className="grid gap-4">
-            {filtered.map(d => (
-              <DealCard
-                key={d.id}
-                venueName={d.venueName}
-                addressLine={d.addressLine}
-                dealTitle={d.title}
-                notes={d.description}
-                badgeText={d.price != null ? `$${Number(d.price).toFixed(2)}` : undefined}
-              />
-            ))}
+            {filtered.map(d => {
+              const badgeText =
+                typeof d.price === 'number'
+                  ? `$${d.price.toFixed(2)}`
+                  : d.start_time && d.end_time
+                  ? `${d.start_time.slice(0,5)} — ${d.end_time.slice(0,5)}`
+                  : undefined;
+
+              return (
+                <DealCard
+                  key={d.id}
+                  venueName={d.venueName}
+                  addressLine={d.addressLine}
+                  dealTitle={d.title}
+                  notes={d.description}
+                  badgeText={badgeText}
+                />
+              );
+            })}
           </ul>
         )}
       </Section>

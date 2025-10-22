@@ -4,18 +4,26 @@ import Link from "next/link";
 import ActivePill from '@/components/admin/ActivePill';
 import { deleteHappyHour } from './actions';
 
-const MON_FIRST = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-const SUN_FIRST = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const ONE_BASED = ["","Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+import { DAY_LABELS } from '@/constants/dayLabels';
 
-function toLabel(v: any): string {
-  if (typeof v === "number") return MON_FIRST[v] ?? SUN_FIRST[v] ?? ONE_BASED[v] ?? "?";
-  if (typeof v === "string") return v[0].toUpperCase() + v.slice(1).toLowerCase();
-  return "?";
+// add this tiny helper at the top (or import from a utils file)
+function toNumberArray(arr: unknown): number[] {
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .map((x) =>
+      typeof x === 'number'
+        ? x
+        : typeof x === 'string'
+          ? parseInt(x, 10)
+          : NaN
+    )
+    .filter((n) => Number.isFinite(n)) as number[];
 }
-function fmtDays(v: unknown): string {
-  const days = Array.isArray(v) ? v : [];
-  return days.map(toLabel).join(", ");
+
+function formatDays(days?: number[]) {
+  if (!days || !days.length) return 'Every day';
+  const uniq = [...new Set(days)].sort((a, b) => a - b);
+  return uniq.map((d) => DAY_LABELS[d]).join(', ');
 }
 function fmtTime(t?: string | null) {
   if (!t) return "—";
@@ -38,7 +46,7 @@ type HH = {
   active: boolean;
   venue: string;
   address: string;
-  days: string[];
+  days: unknown; // can be string[], number[], or mixed
   start: string | null;
   end: string | null;
   price_cents: number | null;
@@ -57,7 +65,9 @@ export default function HappyHourRow({ hh }: { hh: HH }) {
         {hh.address ? <div className="text-xs text-gray-500">{hh.address}</div> : null}
       </td>
 
-      <td className="px-4 py-3">{fmtDays(hh.days)}</td>
+      <td className="px-4 py-3">
+        {formatDays(toNumberArray(hh.days))}
+      </td>
 
       <td className="px-4 py-3">
         {fmtTime(hh.start)} — {fmtTime(hh.end)}

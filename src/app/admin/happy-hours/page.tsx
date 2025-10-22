@@ -20,19 +20,12 @@ function toMsg(err: any, fallback = "Unknown error") {
   }
 }
 
-const MON_FIRST = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-const SUN_FIRST = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const ONE_BASED = ["","Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+import { DAY_LABELS } from '@/constants/dayLabels';
 
-function toLabel(v: any): string {
-  if (typeof v === "number") return MON_FIRST[v] ?? SUN_FIRST[v] ?? ONE_BASED[v] ?? "?";
-  if (typeof v === "string") return v[0].toUpperCase() + v.slice(1).toLowerCase();
-  return "?";
-}
-
-function fmtDays(v: unknown): string {
-  const days = Array.isArray(v) ? v : [];
-  return days.map(toLabel).join(", ");
+function formatDays(days?: number[]) {
+  if (!days || !days.length) return 'Every day';
+  const uniq = [...new Set(days)].sort((a, b) => a - b);
+  return uniq.map((d) => DAY_LABELS[d]).join(', ');
 }
 
 async function getHappyHoursSafe(): Promise<{ rows: any[]; errorMsg?: string }> {
