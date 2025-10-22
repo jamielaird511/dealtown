@@ -1,64 +1,94 @@
 "use client";
-import * as React from "react";
+
 import { Share2 } from "lucide-react";
-import { buildShareUrl, copyToClipboard, type SharePayload } from "@/lib/utils/share";
+import { cn } from "@/lib/utils/cn";
+import { logEvent } from "@/lib/analytics"; // central helper
 
 type Props = {
-  title?: string;
-  text?: string;
-  url?: string;      // pass a canonical URL if you have a per-deal route; otherwise omit
   className?: string;
+  title: string;
+  url?: string;               // optional explicit URL; falls back to location.href
+  text?: string;
+  entityType?: "deal" | "happy_hour" | "lunch";
+  entityId?: number | string;
   variant?: "link" | "pill";
-  withIcon?: boolean;
-  children?: React.ReactNode; // optional custom label/icon
 };
 
 export default function ShareButton({
-  title,
-  text,
-  url,
   className,
-  variant = "link",
-  withIcon = true,
-  children,
+  title,
+  url,
+  text,
+  entityType,
+  entityId,
+  variant = "pill",
 }: Props) {
-  const onClick = async () => {
-    const shareUrl = buildShareUrl(url);
-    const payload: SharePayload = {
-      title: title ?? "DealTown",
-      text: text ?? "Check out this deal on DealTown",
-      url: shareUrl,
-    };
+  async function handleClick() {
+    const targetUrl = url ?? window.location.href;
+    const shareText = text ?? title;
+
+    // default so we always send a method
+    let method: "system" | "copy" = "copy";
+
     try {
-      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-        await navigator.share(payload as ShareData);
+      if (navigator.share) {
+        method = "system";
+        await navigator.share({ title, text: shareText, url: targetUrl });
+        // success → log share
+        await logEvent({
+          type: "share",
+          category: "engagement",
+          action: "share",
+          label: "share_button",
+          entity_type: entityType ?? null,
+          entity_id: entityId ?? null,
+          target_url: targetUrl,
+          method,
+        });
         return;
       }
-      await copyToClipboard(shareUrl);
-      alert("Link copied to clipboard");
-    } catch {
-      // user cancelled share or clipboard failed
+
+      // Fallback: copy URL to clipboard
+      await navigator.clipboard.writeText(targetUrl);
+      await logEvent({
+        type: "share",
+        category: "engagement",
+        action: "share",
+        label: "share_button",
+        entity_type: entityType ?? null,
+        entity_id: entityId ?? null,
+        target_url: targetUrl,
+        method,
+      });
+    } catch (err) {
+      // User cancelled native sheet or copy failed → still useful to know
+      await logEvent({
+        type: "share",
+        category: "engagement",
+        action: "share_cancel",
+        label: "share_button",
+        entity_type: entityType ?? null,
+        entity_id: entityId ?? null,
+        target_url: targetUrl,
+        method,
+      });
     }
-  };
-
-  const pillClasses =
-    "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium " +
-    "bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700 " +
-    "transition shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 " +
-    "active:translate-y-px";
-
-  const linkClasses =
-    "text-sm underline underline-offset-4 hover:opacity-80 focus:outline-none";
+  }
 
   return (
     <button
       type="button"
-      onClick={onClick}
-      className={className ?? (variant === "pill" ? pillClasses : linkClasses)}
-      aria-label="Share this deal"
+      onClick={handleClick}
+      className={cn(
+        variant === "pill"
+          ? "inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium bg-orange-500 text-white shadow hover:opacity-90 active:translate-y-px"
+          : "inline-flex items-center gap-1 underline underline-offset-2",
+        className
+      )}
+      aria-label="Share this"
     >
-      {withIcon && variant === "pill" ? <Share2 size={14} /> : null}
-      {children ?? "Share"}
+      <Share2 className="h-4 w-4" aria-hidden />
+      <span>Share</span>
     </button>
   );
 }
