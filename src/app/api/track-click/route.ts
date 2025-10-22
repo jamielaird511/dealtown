@@ -7,9 +7,9 @@ export async function POST(req: Request) {
     const payload = await req.json();
     const h = headers();
     
-    // TEMP: log what prod actually receives (remove after verifying)
-    console.log("[track-click] payload", payload);
-    console.log("[track-click] geo", {
+    // TEMP DEBUG — log what prod actually receives
+    console.log("[track-click] raw payload →", payload);
+    console.log("[track-click] geo headers →", {
       country: h.get("x-vercel-ip-country"),
       city:    h.get("x-vercel-ip-city"),
       region:  h.get("x-vercel-ip-region"),
