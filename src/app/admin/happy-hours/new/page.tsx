@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DayPicker from "@/components/DayPicker";
-import { getDowInZone } from "@/lib/time";
+import { getTodayIsoWeekday, isoToZeroBased } from "@/lib/utils/day";
 import Link from "next/link";
 
 type Venue = { id: number; name: string };
@@ -35,7 +35,7 @@ export default function NewHappyHourPage() {
     price_cents: undefined,
     start_time: "16:00",
     end_time: "18:00",
-    days: [getDowInZone("Pacific/Auckland")],
+    days: [getTodayIsoWeekday()], // Use ISO weekday
     active_from: "",
     active_to: "",
     is_active: true,
@@ -62,7 +62,7 @@ export default function NewHappyHourPage() {
       website_url: form.website_url?.trim() || undefined,
       active_from: form.active_from || undefined,
       active_to: form.active_to || undefined,
-      // days: form.days (keep as numbers - schema will normalize to strings)
+      days: isoToZeroBased(form.days), // Convert ISO weekdays to 0-based for DB
     };
 
     try {

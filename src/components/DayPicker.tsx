@@ -1,8 +1,8 @@
 "use client";
-import { DOW_ORDER, DOW_LABELS } from "@/lib/day";
+import { ISO_WEEKDAY_LABELS_ARRAY, ISO_WEEKDAY_NUMBERS } from "@/lib/constants/weekdays";
 
 type Props = {
-  value: number[];
+  value: number[]; // ISO weekdays (1=Mon, 7=Sun)
   onChange: (days: number[]) => void;
 };
 
@@ -15,14 +15,14 @@ export default function DayPicker({ value, onChange }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        {DOW_ORDER.map((dow, i) => (
+        {ISO_WEEKDAY_NUMBERS.map((isoDay) => (
           <button
-            key={dow}
+            key={isoDay}
             type="button"
-            className={`px-3 py-1 rounded-full border ${value.includes(i) ? "bg-black text-white" : ""}`}
-            onClick={() => toggle(i)}
+            className={`px-3 py-1 rounded-full border ${value.includes(isoDay) ? "bg-black text-white" : ""}`}
+            onClick={() => toggle(isoDay)}
           >
-            {DOW_LABELS[dow]}
+            {ISO_WEEKDAY_LABELS_ARRAY[isoDay - 1]}
           </button>
         ))}
       </div>
@@ -30,14 +30,14 @@ export default function DayPicker({ value, onChange }: Props) {
         <button
           type="button"
           className="px-3 py-1 rounded border"
-          onClick={() => onChange([1, 2, 3, 4, 5])}
+          onClick={() => onChange([1, 2, 3, 4, 5])} // Mon-Fri
         >
           Weekdays
         </button>
         <button
           type="button"
           className="px-3 py-1 rounded border"
-          onClick={() => onChange([0, 1, 2, 3, 4, 5, 6])}
+          onClick={() => onChange([1, 2, 3, 4, 5, 6, 7])} // All days
         >
           Everyday
         </button>

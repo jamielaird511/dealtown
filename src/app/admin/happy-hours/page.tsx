@@ -20,14 +20,6 @@ function toMsg(err: any, fallback = "Unknown error") {
   }
 }
 
-import { DAY_LABELS } from '@/constants/dayLabels';
-
-function formatDays(days?: number[]) {
-  if (!days || !days.length) return 'Every day';
-  const uniq = [...new Set(days)].sort((a, b) => a - b);
-  return uniq.map((d) => DAY_LABELS[d]).join(', ');
-}
-
 async function getHappyHoursSafe(): Promise<{ rows: any[]; errorMsg?: string }> {
   noStore(); // ensure no caching happens for this call
   const supabase = getSupabaseServerComponentClient();

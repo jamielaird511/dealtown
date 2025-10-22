@@ -5,26 +5,7 @@ import ActivePill from '@/components/admin/ActivePill';
 import { deleteHappyHour } from './actions';
 
 import { DAY_LABELS } from '@/constants/dayLabels';
-
-// add this tiny helper at the top (or import from a utils file)
-function toNumberArray(arr: unknown): number[] {
-  if (!Array.isArray(arr)) return [];
-  return arr
-    .map((x) =>
-      typeof x === 'number'
-        ? x
-        : typeof x === 'string'
-          ? parseInt(x, 10)
-          : NaN
-    )
-    .filter((n) => Number.isFinite(n)) as number[];
-}
-
-function formatDays(days?: number[]) {
-  if (!days || !days.length) return 'Every day';
-  const uniq = [...new Set(days)].sort((a, b) => a - b);
-  return uniq.map((d) => DAY_LABELS[d]).join(', ');
-}
+import { normalizeToIsoWeekdays, formatIsoWeekdays } from '@/lib/utils/day';
 function fmtTime(t?: string | null) {
   if (!t) return "—";
   // t is "HH:MM:SS" or "HH:MM"
@@ -66,7 +47,7 @@ export default function HappyHourRow({ hh }: { hh: HH }) {
       </td>
 
       <td className="px-4 py-3">
-        {formatDays(toNumberArray(hh.days))}
+        {formatIsoWeekdays(normalizeToIsoWeekdays(hh.days))}
       </td>
 
       <td className="px-4 py-3">
