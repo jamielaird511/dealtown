@@ -1,7 +1,10 @@
 // src/components/DealCard.tsx
 import ShareButton from "@/components/ui/ShareButton";
+import TrackableAddress from "@/components/ui/TrackableAddress";
+
 type Deal = {
   id: string | number;
+  venue_id?: number | null;
   title: string;
   description?: string | null; // unified view field
   notes?: string | null;       // fallback if any legacy view returns this
@@ -34,7 +37,7 @@ export default function DealCard({ deal }: { deal: Deal }) {
           {/* Address (subtle) */}
           {deal.venue_address && (
             <div className="text-xs text-gray-500">
-              {deal.venue_address}
+              <TrackableAddress address={deal.venue_address} venueId={deal.venue_id} context="deal" />
             </div>
           )}
 

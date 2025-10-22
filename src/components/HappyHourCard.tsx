@@ -1,8 +1,10 @@
 import ShareButton from "@/components/ui/ShareButton";
+import TrackableAddress from "@/components/ui/TrackableAddress";
 
 type Venue = { name?: string; address?: string; website_url?: string };
 type HH = {
   id: string;
+  venue_id?: number | null;
   title?: string | null;
   description?: string | null;
   starts_at?: string | null; // "16:00:00"
@@ -39,7 +41,11 @@ export default function HappyHourCard({ hh }: { hh: HH }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold">{venueName}</h3>
-        {venueAddress && <p className="text-sm text-gray-600">{venueAddress}</p>}
+        {venueAddress && (
+          <p className="text-sm text-gray-600">
+            <TrackableAddress address={venueAddress} venueId={hh.venue_id} context="happy_hour" />
+          </p>
+        )}
         </div>
         <ShareButton
           variant="pill"

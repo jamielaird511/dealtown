@@ -6,6 +6,7 @@ import DealCard from '@/components/ui/DealCard';
 
 type Item = {
   id: string;
+  venue_id?: number | null;
   title: string;
   description: string | null;
   price: number | null;
@@ -44,9 +45,11 @@ export default function DealsClient({ items }: { items: Item[] }) {
                 key={d.id}
                 venueName={d.venueName}
                 addressLine={d.addressLine}
+                venueId={d.venue_id}
                 dealTitle={d.title}                 // deal name (e.g., "Taco Tuesday")
                 notes={d.description}               // notes / details
                 badgeText={d.price != null ? `$${d.price.toFixed(2)}` : undefined}
+                context="deal"
               />
             ))}
           </ul>

@@ -118,13 +118,23 @@ export default function DealsSection() {
       <div className="mt-4 space-y-3">
         {deals.length === 0 ? (
           <p className="text-black/60">No deals for {day}.</p>
-        ) : (
-          <ul className="grid gap-3 list-none">
-            {deals.map((d: DealDto) => (
-              <DealCard key={d.id} deal={d} />
-            ))}
-          </ul>
-        )}
+        ) : (() => {
+          // Coerce venue_id to number|null to satisfy Deal type
+          const normalized = deals.map((d: DealDto) => ({
+            ...d,
+            venue_id:
+              d.venue_id === null || d.venue_id === undefined
+                ? null
+                : Number(d.venue_id),
+          })) as Deal[];
+          return (
+            <ul className="grid gap-3 list-none">
+              {normalized.map((d) => (
+                <DealCard key={d.id} deal={d} />
+              ))}
+            </ul>
+          );
+        })()}
       </div>
     </section>
   );

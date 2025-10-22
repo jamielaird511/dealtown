@@ -12,6 +12,7 @@ const timeRange = (s?: string|null, e?: string|null) => {
 
 type Item = {
   id: string;
+  venue_id?: number | null;
   title: string;
   description: string | null;
   price: number | null;
@@ -55,9 +56,11 @@ export default function LunchClient({ items }: { items: Item[] }) {
                   key={d.id}
                   venueName={d.venueName}
                   addressLine={d.addressLine}
+                  venueId={d.venue_id}
                   dealTitle={d.title}
                   notes={d.description}
                   badgeText={badgeText}
+                  context="lunch"
                 />
               );
             })}

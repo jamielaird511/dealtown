@@ -13,6 +13,7 @@ function fmtTime(t?: string | null) {
 
 type Item = {
   id: string;
+  venue_id?: number | null;
   days_of_week: number[] | null;
   start_time: string | null;
   end_time: string | null;
@@ -52,6 +53,7 @@ export default function HappyHourClient({ items }: { items: Item[] }) {
                 key={hh.id}
                 venueName={hh.venueName}
                 addressLine={hh.addressLine}
+                venueId={hh.venue_id}
                 dealTitle={null}                // ← use null instead of undefined
                 notes={hh.notes}
                 badgeText={
@@ -59,6 +61,7 @@ export default function HappyHourClient({ items }: { items: Item[] }) {
                     ? `${fmtTime(hh.start_time)} — ${fmtTime(hh.end_time)}`
                     : undefined
                 }
+                context="happy_hour"
               />
             ))}
           </ul>

@@ -1,20 +1,25 @@
 import React from 'react';
 import ShareButton from './ShareButton';
+import TrackableAddress from './TrackableAddress';
 
 export type DealCardProps = {
   venueName: string | null;
   addressLine: string | null;
+  venueId?: number | null;
   dealTitle: string | null;       // e.g., "Taco Tuesday"
   notes?: string | null;          // description / fine print
   badgeText?: string;             // e.g., "$15.00"
+  context?: "deal" | "happy_hour" | "lunch";
 };
 
 export default function DealCard({
   venueName,
   addressLine,
+  venueId,
   dealTitle,
   notes,
   badgeText,
+  context = "deal",
 }: DealCardProps) {
   return (
     <li className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
@@ -27,7 +32,9 @@ export default function DealCard({
 
           {/* Address */}
           {addressLine ? (
-            <div className="mt-1 text-sm text-neutral-500">{addressLine}</div>
+            <div className="mt-1 text-sm text-neutral-500">
+              <TrackableAddress address={addressLine} venueId={venueId} context={context} />
+            </div>
           ) : null}
 
           {/* Deal title in orange */}
