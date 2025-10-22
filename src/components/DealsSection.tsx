@@ -2,6 +2,7 @@
 import { useDayFilter } from '@/components/day/DayFilterContext';
 import DealCard from '@/components/DealCard';
 import useSWR from 'swr';
+import type { Deal } from '@/types/deal';
 
 type DealDto = {
   id: string | number;
@@ -122,10 +123,7 @@ export default function DealsSection() {
           // Coerce venue_id to number|null to satisfy Deal type
           const normalized = deals.map((d: DealDto) => ({
             ...d,
-            venue_id:
-              d.venue_id === null || d.venue_id === undefined
-                ? null
-                : Number(d.venue_id),
+            venue_id: d.venue_id == null ? null : Number(d.venue_id),
           })) as Deal[];
           return (
             <ul className="grid gap-3 list-none">
