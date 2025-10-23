@@ -12,7 +12,7 @@ export default async function LunchPage() {
       id, title, description, price_cents,
       start_time, end_time, days_of_week, is_active,
       venue_id,
-      venue:venues!lunch_menus_venue_id_fkey(*)
+      venue:venues!lunch_menus_venue_id_fkey(id, name, address, city, website_url)
     `)
     .eq('is_active', true);
 
@@ -35,22 +35,29 @@ export default async function LunchPage() {
     const at = a.start_time ? a.start_time : '99:99';
     const bt = b.start_time ? b.start_time : '99:99';
     if (at !== bt) return at.localeCompare(bt);
-    return (a.venue?.name ?? '').localeCompare(b.venue?.name ?? '');
+    const aName =
+      (Array.isArray(a.venue) ? a.venue[0]?.name : a.venue?.name) ?? '';
+    const bName =
+      (Array.isArray(b.venue) ? b.venue[0]?.name : b.venue?.name) ?? '';
+    return aName.localeCompare(bName);
   });
 
-  const items = rows.map((row: any) => ({
-    id: row.id,
-    venue_id: row.venue_id, // ✅ Include venue_id for analytics
-    title: row.title,
-    description: row.description,
-    price: row.price_cents != null ? row.price_cents / 100 : null,
-    days_of_week: row.days_of_week ?? null,
-    start_time: row.start_time,
-    end_time: row.end_time,
-    venueName: row.venue?.name ?? null,
-    addressLine: row.venue ? [row.venue.address, row.venue.city].filter(Boolean).join(", ") : null,
-    venueWebsite: row.venue?.website_url ?? null,
-  }));
+  const items = rows.map((row: any) => {
+    const venue = Array.isArray(row.venue) ? row.venue[0] : row.venue;
+    return {
+      id: row.id,
+      venue_id: row.venue_id, // ✅ Include venue_id for analytics
+      title: row.title,
+      description: row.description,
+      price: row.price_cents != null ? row.price_cents / 100 : null,
+      days_of_week: row.days_of_week ?? null,
+      start_time: row.start_time,
+      end_time: row.end_time,
+      venueName: venue?.name ?? null,
+      addressLine: venue ? [venue.address, venue.city].filter(Boolean).join(", ") : null,
+      venueWebsite: venue?.website_url ?? null,
+    };
+  });
 
   return <LunchClient items={items} />;
 }
