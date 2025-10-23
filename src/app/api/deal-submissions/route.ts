@@ -75,22 +75,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // fire-and-forget email
-    try {
-      await sendSubmissionEmailHTTP({
-        id: data?.id ?? null,
-        venue_name,
-        deal_title,
-        description,
-        days,
-        start_time,
-        end_time,
-        submitter_email,
-        category,
-      });
-    } catch (e) {
-      console.warn("[email] submission notice failed:", e);
-    }
+        // fire-and-forget email
+        try {
+          await sendSubmissionEmailHTTP({
+            id: data?.id ?? null,
+            venue_name,
+            deal_title,
+            description,
+            days,
+            start_time,
+            end_time,
+            submitter_email,
+            category,
+          });
+          console.log('[email] resend send OK');
+        } catch (e: any) {
+          console.error('[email] submission notice failed', e);
+          return NextResponse.json({ ok: false, error: 'mail_failed', detail: (e?.message ?? 'unknown') }, { status: 502 });
+        }
 
     return NextResponse.json({ ok: true, id: data?.id ?? null });
   } catch (err: any) {

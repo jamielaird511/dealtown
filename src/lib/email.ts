@@ -60,39 +60,44 @@ export async function sendSubmissionEmailHTTP(payload: {
   submitter_email?: string | null;
   category?: string | null;
 }) {
-  const FROM = process.env.SUBMISSIONS_FROM_EMAIL!;
-  const TO = process.env.SUBMISSIONS_TO_EMAIL!;
-  const KEY = process.env.RESEND_API_KEY!;
+  try {
+    const FROM = process.env.SUBMISSIONS_FROM_EMAIL!;
+    const TO = process.env.SUBMISSIONS_TO_EMAIL!;
+    const KEY = process.env.RESEND_API_KEY!;
 
-  if (!KEY) {
-    console.warn("[resend] RESEND_API_KEY missing; skipping email send");
-    return;
+    if (!KEY) {
+      console.warn("[resend] RESEND_API_KEY missing; skipping email send");
+      return;
+    }
+    const resend = new Resend(KEY);
+
+    const catLabel = formatCategory(payload.category);
+    const subject = `New Deal Submission${catLabel !== "—" ? ` (${catLabel})` : ""}: ${payload.deal_title ?? "(Untitled)"} — ${payload.venue_name ?? ""}`;
+    const html = `
+      <h2>New Deal Submission</h2>
+      <table style="font-family:system-ui,Segoe UI,Arial;font-size:14px;border-collapse:collapse" border="1" cellpadding="6">
+        <tr><th align="left">Venue</th><td>${payload.venue_name ?? ""}</td></tr>
+        <tr><th align="left">Title</th><td>${payload.deal_title ?? ""}</td></tr>
+        <tr><th align="left">Days</th><td>${formatDays(payload.days)}</td></tr>
+        <tr><th align="left">Time</th><td>${payload.start_time ?? ""} – ${payload.end_time ?? ""}</td></tr>
+        <tr><th align="left">Category</th><td>${formatCategory(payload.category)}</td></tr>
+        <tr><th align="left">Notes</th><td>${payload.description ?? ""}</td></tr>
+        <tr><th align="left">Submitter</th><td>${payload.submitter_email ?? ""}</td></tr>
+        <tr><th align="left">Submission ID</th><td>${payload.id ?? ""}</td></tr>
+      </table>
+      <p style="font-family:system-ui,Segoe UI,Arial;font-size:12px;color:#666">Sent by DealTown</p>
+    `;
+
+    const result = await resend.emails.send({
+      from: FROM,
+      to: TO,
+      subject,
+      html,
+    });
+
+    console.log("[resend] sent", result?.data?.id ?? result);
+  } catch (err) {
+    console.error('[resend] error', JSON.stringify(err, null, 2));
+    throw err;
   }
-  const resend = new Resend(KEY);
-
-  const catLabel = formatCategory(payload.category);
-  const subject = `New Deal Submission${catLabel !== "—" ? ` (${catLabel})` : ""}: ${payload.deal_title ?? "(Untitled)"} — ${payload.venue_name ?? ""}`;
-  const html = `
-    <h2>New Deal Submission</h2>
-    <table style="font-family:system-ui,Segoe UI,Arial;font-size:14px;border-collapse:collapse" border="1" cellpadding="6">
-      <tr><th align="left">Venue</th><td>${payload.venue_name ?? ""}</td></tr>
-      <tr><th align="left">Title</th><td>${payload.deal_title ?? ""}</td></tr>
-      <tr><th align="left">Days</th><td>${formatDays(payload.days)}</td></tr>
-      <tr><th align="left">Time</th><td>${payload.start_time ?? ""} – ${payload.end_time ?? ""}</td></tr>
-      <tr><th align="left">Category</th><td>${formatCategory(payload.category)}</td></tr>
-      <tr><th align="left">Notes</th><td>${payload.description ?? ""}</td></tr>
-      <tr><th align="left">Submitter</th><td>${payload.submitter_email ?? ""}</td></tr>
-      <tr><th align="left">Submission ID</th><td>${payload.id ?? ""}</td></tr>
-    </table>
-    <p style="font-family:system-ui,Segoe UI,Arial;font-size:12px;color:#666">Sent by DealTown</p>
-  `;
-
-  const result = await resend.emails.send({
-    from: FROM,
-    to: TO,
-    subject,
-    html,
-  });
-
-  console.log("[resend] sent", result?.data?.id ?? result);
 }
