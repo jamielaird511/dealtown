@@ -9,17 +9,13 @@ export default async function HomePage() {
   const { data, error } = await supabase
     .from("deals")
     .select(`
-      id,
-      venue_id,
-      title,
-      description,
-      price_cents,
-      effective_price_cents,
-      is_active,
-      day_of_week,
-      venue_name,
-      venue_address,
-      venue:venues!deals_venue_id_fkey(id, name, address, website_url)
+      *,
+      venue:venues!deals_venue_fk(
+        id,
+        name,
+        address,
+        website_url
+      )
     `)
     .eq("is_active", true);
 

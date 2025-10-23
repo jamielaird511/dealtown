@@ -14,12 +14,15 @@ export default async function AdminDealsPage() {
 
   const { data: deals, error: dealsError } = await supabase
     .from("deals")
-    .select(
-      `
-      id, title, day_of_week, is_active, venue_id, price_cents, notes, created_at, updated_at,
-      venue:venues!deals_venue_id_fkey(id, name, address, website_url)
-    `
-    )
+    .select(`
+      *,
+      venue:venues!deals_venue_fk(
+        id,
+        name,
+        address,
+        website_url
+      )
+    `)
     .order("price_cents", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(50);
