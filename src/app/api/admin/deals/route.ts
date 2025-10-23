@@ -35,7 +35,8 @@ export async function POST(req: Request) {
   const is_active = form.get("is_active") === "on" || form.get("is_active") === "true";
   const priceRaw = form.get("price") ?? form.get("price_cents"); // accept either field name
   const price_cents = toCents(priceRaw);
-  const notes = String(form.get("notes") || "") || null;
+  const notesRaw = form.get("notes") as string | null;
+  const cleanNotes = (notesRaw ?? "").toString().trim() || null;
 
   const venue_id = Number(form.get("venue_id"));
   if (!venue_id || Number.isNaN(venue_id)) {
@@ -44,9 +45,13 @@ export async function POST(req: Request) {
     return NextResponse.redirect(url, { status: 303 });
   }
 
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[create deal] payload notes =", cleanNotes);
+  }
+
   const { error } = await supabase
     .from("deals")
-    .insert([{ title, day_of_week, is_active, price_cents, notes, venue_id }]);
+    .insert([{ title, day_of_week, is_active, price_cents, notes: cleanNotes, venue_id }]);
 
   if (error) {
     const url = new URL("/admin/new", req.url);
