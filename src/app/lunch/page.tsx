@@ -3,68 +3,42 @@ import LunchClient from './LunchClient';
 
 export const revalidate = 60;
 
-// Add above your sort or near imports
-function getVenueName(venue: unknown): string {
-  if (!venue) return "";
-  // handle either a single embedded object or an accidental array embed
-  if (Array.isArray(venue)) return (venue[0] as any)?.name ?? "";
-  return (venue as any)?.name ?? "";
-}
-
 export default async function LunchPage() {
   const supabase = getSupabaseServerComponentClient();
   
+  // Get today's day name for filtering
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const selectedDay = dayNames[new Date().getDay()];
+
   const { data, error } = await supabase
-    .from('lunch_menus')
+    .from("deals")
     .select(`
-      id, title, description, price_cents,
-      start_time, end_time, days_of_week, is_active,
-      venue_id,
-      venue:venues!lunch_menus_venue_id_fkey(id, name, address, city, website_url)
+      id, title, description, price, category, venue_id, day, start_time, end_time,
+      venue:venues!deals_venue_id_fkey(id, name, address, website_url)
     `)
-    .eq('is_active', true);
+    .eq("is_active", true)
+    .eq("category", "lunch")
+    // TEMP: comment this line if you still get zero rows, to confirm data exists.
+    .eq("day", selectedDay)
+    .order("start_time", { ascending: true, nullsFirst: false })
+    .order("id", { ascending: true });
 
-  if (error) {
-    console.error("[lunch] fetch error", error);
-  }
+  if (error) console.error("[lunch fetch] error", error);
+  console.log("[lunch count]", data?.length, { selectedDay });
 
-  // Day filtering (match your other pages)
-  // 0=Sun ... 6=Sat (same convention we used elsewhere)
-  const todayIdx = new Date().getDay();
-  const showToday = (row: { days_of_week: number[] | null }) =>
-    !row.days_of_week || row.days_of_week.length === 0 || row.days_of_week.includes(todayIdx);
-
-  const rows = (data ?? []).filter(showToday);
-
-  // Sorting (consistent with your spec)
-  // Primary: start_time (nulls last)
-  // Secondary: venue name A–Z
-  rows.sort((a: any, b: any) => {
-    const at = a.start_time ? a.start_time : "99:99";
-    const bt = b.start_time ? b.start_time : "99:99";
-    if (at !== bt) return at.localeCompare(bt);
-
-    const aName = getVenueName(a.venue);
-    const bName = getVenueName(b.venue);
-    return aName.localeCompare(bName);
-  });
-
-  const items = rows.map((row: any) => {
-    const venue = Array.isArray(row.venue) ? row.venue[0] : row.venue;
-    return {
-      id: row.id,
-      venue_id: row.venue_id, // ✅ Include venue_id for analytics
-      title: row.title,
-      description: row.description,
-      price: row.price_cents != null ? row.price_cents / 100 : null,
-      days_of_week: row.days_of_week ?? null,
-      start_time: row.start_time,
-      end_time: row.end_time,
-      venueName: venue?.name ?? null,
-      addressLine: venue ? [venue.address, venue.city].filter(Boolean).join(", ") : null,
-      venueWebsite: venue?.website_url ?? null,
-    };
-  });
+  const items = (data ?? []).map((row: any) => ({
+    id: row.id,
+    venue_id: row.venue_id, // ✅ Include venue_id for analytics
+    title: row.title,
+    description: row.description,
+    price: row.price != null ? row.price : null,
+    days_of_week: null, // Not used in deals table
+    start_time: row.start_time,
+    end_time: row.end_time,
+    venueName: row.venue?.name ?? null,
+    addressLine: row.venue?.address ?? null,
+    venueWebsite: row.venue?.website_url ?? null,
+  }));
 
   return <LunchClient items={items} />;
 }
