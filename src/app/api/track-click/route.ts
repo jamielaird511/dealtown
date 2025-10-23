@@ -1,21 +1,16 @@
+// src/app/api/track-click/route.ts
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: Request) {
+  const h = headers();
   try {
     const payload = await req.json();
-    const h = headers();
-    
-    // TEMP DEBUG — log what prod actually receives
-    console.log("[track-click] raw payload →", payload);
-    console.log("[track-click] geo headers →", {
-      country: h.get("x-vercel-ip-country"),
-      city:    h.get("x-vercel-ip-city"),
-      region:  h.get("x-vercel-ip-region"),
-    });
-    
-    // Geo (Vercel provides these in production; add a dev fallback)
+
+    // Debug: what did we actually receive?
+    console.log("[track-click] payload →", payload);
+
     const vercelCountry = h.get("x-vercel-ip-country");
     const vercelCity = h.get("x-vercel-ip-city");
     const vercelRegion = h.get("x-vercel-ip-region");
@@ -26,11 +21,18 @@ export async function POST(req: Request) {
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY! // server only
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    await supabase.from("click_events").insert({
+    const { error } = await supabase.from("click_events").insert({
+      // core types
       type: payload?.type ?? "address",
+      category: payload?.category ?? null,
+      action: payload?.action ?? null,
+      label: payload?.label ?? null,
+      value: payload?.value ?? null,
+
+      // context
       session_id: payload?.session_id ?? null,
       path: payload?.path ?? null,
       entity_type: payload?.entity_type ?? null,
@@ -39,24 +41,25 @@ export async function POST(req: Request) {
       method: payload?.method ?? null,
       target_url: payload?.target_url ?? null,
       context: payload?.context ?? null,
-      // geo fields
-      country,
-      city,
-      region,
+
+      // geo
+      country, city, region,
+
+      // request metadata
       user_agent: h.get("user-agent"),
       referer: h.get("referer"),
       ip: h.get("x-forwarded-for"),
-      // optional richer fields if you added them in your migration
-      category: payload?.category ?? null,
-      action: payload?.action ?? null,
-      label: payload?.label ?? null,
-      value: payload?.value ?? null,
-      utm_source: payload?.utm_source ?? null,
-      utm_medium: payload?.utm_medium ?? null,
-      utm_campaign: payload?.utm_campaign ?? null,
     });
+
+    if (error) {
+      console.error("[track-click] insert error →", error);
+      return NextResponse.json({ ok: false, error: error.message }, { status: 200 });
+    }
+
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ ok: false }, { status: 200 }); // never 500 on click
+  } catch (e) {
+    console.error("[track-click] handler error →", e);
+    // Still return 200 so clicks never block UX
+    return NextResponse.json({ ok: false }, { status: 200 });
   }
 }
