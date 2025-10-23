@@ -1,35 +1,37 @@
-export const timeAgo = (iso: string) => {
-  const t = new Date(iso).getTime();
-  const diff = Date.now() - t;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 48) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-};
+// src/lib/time.ts
+/**
+ * Accepts "HH:mm" or "HH:mm:ss" and returns "h:mmam/pm".
+ * Falls back to the original string if the format is unexpected.
+ */
+export function to12h(time?: string | null) {
+  if (!time) return null;
 
-export const isOlderThan48h = (iso: string) =>
-  Date.now() - new Date(iso).getTime() > 48 * 3600 * 1000;
+  const t = String(time).trim();
+
+  // Match 24h "H:mm" or "HH:mm" or "HH:mm:ss"
+  // 1: hours, 2: minutes, 3: optional seconds
+  const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(t);
+  if (!m) return t; // leave it unchanged if it's some other format
+
+  let h = parseInt(m[1], 10);
+  const min = m[2];
+  const am = h < 12 || h === 24;
+
+  if (h === 0) h = 12;
+  if (h > 12) h -= 12;
+
+  return `${h}:${min}${am ? "am" : "pm"}`;
+}
 
 /**
- * Get day of week (0=Sun..6=Sat) in a specific IANA timezone.
+ * Render a range like "11:00am — 3:00pm".
+ * Accepts start/end as "HH:mm" or "HH:mm:ss".
  */
-export function getDowInZone(tz: string): number {
-  const fmt = new Intl.DateTimeFormat("en-NZ", {
-    timeZone: tz,
-    weekday: "short",
-  });
-  const dayName = fmt.format(new Date());
-  const map: Record<string, number> = {
-    Sun: 0,
-    Mon: 1,
-    Tue: 2,
-    Wed: 3,
-    Thu: 4,
-    Fri: 5,
-    Sat: 6,
-  };
-  return map[dayName] ?? 0;
+export function renderTimeRange(start?: string | null, end?: string | null) {
+  const s = to12h(start);
+  const e = to12h(end);
+  if (s && e) return `${s} — ${e}`;
+  if (s) return s;
+  if (e) return e;
+  return null;
 }
