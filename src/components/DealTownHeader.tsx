@@ -14,7 +14,11 @@ export default function DealTownHeader() {
       <header className="mx-auto max-w-4xl px-6 py-3 sm:py-6 md:py-10 mb-2">
         <div>
           <div className="flex items-center gap-2 sm:gap-3">
-            <h1 className="text-3xl font-semibold tracking-tight brand-title">DealTown</h1>
+            <h1 className="text-3xl font-semibold tracking-tight brand-title">
+              <Link href="/" aria-label="Go to DealTown home" className="hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-orange-400 rounded">
+                DealTown
+              </Link>
+            </h1>
             <span
               aria-label="Current city: Queenstown"
               className="ml-2 inline-flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1 text-xs font-semibold text-white shadow-sm ring-1 ring-orange-400/50 hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 transition sm:text-sm"
