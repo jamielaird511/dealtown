@@ -21,6 +21,14 @@ function supabaseAdmin() {
 }
 
 export async function POST(req: Request) {
+  console.log('[deal-submissions env]', {
+    url: !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL),
+    service: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    resend: !!process.env.RESEND_API_KEY,
+    to: process.env.SUBMISSIONS_TO_EMAIL,
+    from: process.env.SUBMISSIONS_FROM_EMAIL,
+  });
+
   try {
     const body = (await req.json()) as Incoming;
     const venue_name = (body.venue_name ?? "").trim();
