@@ -69,12 +69,22 @@ export default async function AnalyticsPage() {
     }
 
     // Collect ids per entity type and resolve titles
-    const ids = { deal: new Set<number>(), happy_hour: new Set<number>(), lunch: new Set<number>() };
+    type EntityKey = 'deal' | 'happy_hour' | 'lunch';
+    
+    const ids: Record<EntityKey, Set<number>> = {
+      deal: new Set<number>(),
+      happy_hour: new Set<number>(),
+      lunch: new Set<number>(),
+    };
+    
     for (const e of events as any[]) {
       if (e.entity_type && e.entity_id) {
         const n = Number(e.entity_id);
-        if (Number.isFinite(n) && (e.entity_type === "deal" || e.entity_type === "happy_hour" || e.entity_type === "lunch")) {
-          ids[e.entity_type].add(n);
+        const t = e.entity_type as EntityKey | null;
+        
+        // Make sure both the id is finite and the entity type is one of our keys
+        if (Number.isFinite(n) && (t === 'deal' || t === 'happy_hour' || t === 'lunch')) {
+          ids[t].add(n);
         }
       }
     }
