@@ -3,6 +3,14 @@ import LunchClient from './LunchClient';
 
 export const revalidate = 60;
 
+// Add above your sort or near imports
+function getVenueName(venue: unknown): string {
+  if (!venue) return "";
+  // handle either a single embedded object or an accidental array embed
+  if (Array.isArray(venue)) return (venue[0] as any)?.name ?? "";
+  return (venue as any)?.name ?? "";
+}
+
 export default async function LunchPage() {
   const supabase = getSupabaseServerComponentClient();
   
@@ -31,14 +39,13 @@ export default async function LunchPage() {
   // Sorting (consistent with your spec)
   // Primary: start_time (nulls last)
   // Secondary: venue name A–Z
-  rows.sort((a, b) => {
-    const at = a.start_time ? a.start_time : '99:99';
-    const bt = b.start_time ? b.start_time : '99:99';
+  rows.sort((a: any, b: any) => {
+    const at = a.start_time ? a.start_time : "99:99";
+    const bt = b.start_time ? b.start_time : "99:99";
     if (at !== bt) return at.localeCompare(bt);
-    const aName =
-      (Array.isArray(a.venue) ? a.venue[0]?.name : a.venue?.name) ?? '';
-    const bName =
-      (Array.isArray(b.venue) ? b.venue[0]?.name : b.venue?.name) ?? '';
+
+    const aName = getVenueName(a.venue);
+    const bName = getVenueName(b.venue);
     return aName.localeCompare(bName);
   });
 
