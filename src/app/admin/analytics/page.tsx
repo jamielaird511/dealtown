@@ -18,6 +18,12 @@ type ClickEvent = {
 
 type Venue = { id: number; name: string | null };
 
+type DailyRow = {
+  day: string;             // 'YYYY-MM-DD'
+  total_clicks: number;
+  unique_visitors: number;
+};
+
 // NZ date helpers
 function dateKeyTZ(d: Date, tz = "Pacific/Auckland") {
   // returns YYYY-MM-DD in given tz
@@ -42,6 +48,8 @@ export default async function AnalyticsPage() {
 
   let events: ClickEvent[] = [];
   let venues: Venue[] = [];
+  let dailyRows: DailyRow[] = [];
+  let uniqueVisitorsToday: number = 0;
   let errorMsg: string | null = null;
   let labels = new Map<string, string>(); // key `${type}:${id}` -> label
 
@@ -67,6 +75,32 @@ export default async function AnalyticsPage() {
         .in("id", venueIds);
       if (e2) throw e2;
       venues = v ?? [];
+    }
+
+    // NEW: daily clicks + unique visitors (from the view)
+    const { data: dailyData, error: dailyErr } = await sb
+      .from("analytics_daily")
+      .select("*")
+      .gte("day", new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)) // last 14 days
+      .order("day", { ascending: true });
+
+    if (dailyErr) {
+      console.error("[analytics_daily] error", dailyErr);
+    } else {
+      dailyRows = dailyData ?? [];
+    }
+
+    // Unique visitors today
+    const { data: todayData, error: todayErr } = await sb
+      .from("click_events")
+      .select("session_id")
+      .gte("created_at", new Date().toISOString().slice(0, 10)); // today
+
+    if (todayErr) {
+      console.error("[unique visitors today] error", todayErr);
+    } else {
+      const uniqueSessions = new Set(todayData?.map(row => row.session_id).filter(Boolean));
+      uniqueVisitorsToday = uniqueSessions.size;
     }
 
     // Collect ids per entity type and resolve titles
@@ -143,22 +177,8 @@ export default async function AnalyticsPage() {
       count,
     }));
 
-  // by day (total) — seed last 14 days in NZT to avoid gaps
-  const byDay = new Map<string, number>();
-  for (let i = 14; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000);
-    byDay.set(dateKeyTZ(d), 0);
-  }
-  events.forEach(e => {
-    if (!e?.created_at) return;
-    const d = new Date(e.created_at);
-    if (Number.isNaN(d.getTime())) return; // skip bad rows
-    const key = dateKeyTZ(d);
-    byDay.set(key, (byDay.get(key) ?? 0) + 1);
-  });
-  const daily = Array.from(byDay.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([day, count]) => ({ day, count }));
+  // Use daily data from the view instead of manual aggregation
+  const daily = dailyRows.map(row => ({ day: row.day, count: row.total_clicks }));
 
   // KPIs
   const totalClicks = events.length;
@@ -191,7 +211,7 @@ export default async function AnalyticsPage() {
       </div>
 
       {/* KPI cards */}
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <div className="rounded-2xl border p-4 shadow-sm">
           <div className="text-sm text-muted-foreground">Total clicks</div>
           <div className="mt-1 text-2xl font-semibold">{totalClicks}</div>
@@ -217,6 +237,10 @@ export default async function AnalyticsPage() {
             <div>Share: <span className="font-medium">{countsByType["share"] ?? 0}</span></div>
             <div>Pageviews: <span className="font-medium">{countsByType["pageview"] ?? 0}</span></div>
           </div>
+        </div>
+        <div className="rounded-2xl border p-4 shadow-sm">
+          <div className="text-sm text-muted-foreground">Unique visitors today</div>
+          <div className="mt-1 text-2xl font-semibold">{uniqueVisitorsToday}</div>
         </div>
       </div>
 
@@ -253,30 +277,40 @@ export default async function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Daily totals */}
+      {/* Daily activity */}
       <div className="mt-8">
-        <h2 className="text-lg font-medium">Daily clicks</h2>
+        <h2 className="text-lg font-medium">Daily activity</h2>
         <div className="mt-3 rounded-2xl border overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
                 <th className="text-left px-3 py-2">Date</th>
                 <th className="text-right px-3 py-2">Clicks</th>
+                <th className="text-right px-3 py-2">Unique visitors</th>
               </tr>
             </thead>
             <tbody>
-              {daily.map((d) => {
-                const y = Number(d.day.slice(0,4));
-                const m = Number(d.day.slice(5,7)) - 1;
-                const dd = Number(d.day.slice(8,10));
-                const label = formatDateNZ(new Date(y, m, dd));
-                return (
-                  <tr key={d.day} className="border-t">
-                    <td className="px-3 py-2">{label}</td>
-                    <td className="px-3 py-2 text-right">{d.count}</td>
-                  </tr>
-                );
-              })}
+              {dailyRows.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">
+                    No data
+                  </td>
+                </tr>
+              ) : (
+                dailyRows.map((row) => {
+                  const y = Number(row.day.slice(0,4));
+                  const m = Number(row.day.slice(5,7)) - 1;
+                  const dd = Number(row.day.slice(8,10));
+                  const label = formatDateNZ(new Date(y, m, dd));
+                  return (
+                    <tr key={row.day} className="border-t">
+                      <td className="px-3 py-2">{label}</td>
+                      <td className="px-3 py-2 text-right">{row.total_clicks}</td>
+                      <td className="px-3 py-2 text-right">{row.unique_visitors}</td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

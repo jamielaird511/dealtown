@@ -49,3 +49,31 @@ export function isOlderThan48h(input: Date | string | number): boolean {
   const d = input instanceof Date ? input : new Date(input);
   return Date.now() - d.getTime() > 48 * 60 * 60 * 1000;
 }
+
+// Format "HH:mm" or "HH:mm:ss" to 12-hour (e.g., "15:00:00" -> "3:00pm")
+export function format12h(hms: string | null | undefined): string | null {
+  if (!hms) return null;
+  const [hStr, mStr = "00"] = hms.split(":"); // ignore seconds if present
+  let h = Number(hStr);
+  const m = Number(mStr);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+
+  const suffix = h >= 12 ? "pm" : "am";
+  h = h % 12;
+  if (h === 0) h = 12;
+  const mm = m.toString().padStart(2, "0");
+  return `${h}:${mm}${suffix}`;
+}
+
+// Render a time range like "3:00pm – 5:00pm". Falls back gracefully.
+export function renderTimeRange(
+  start?: string | null,
+  end?: string | null
+): string | null {
+  const s = format12h(start ?? null);
+  const e = format12h(end ?? null);
+  if (s && e) return `${s} – ${e}`;
+  if (s) return s;
+  if (e) return e;
+  return null;
+}

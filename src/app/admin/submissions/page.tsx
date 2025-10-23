@@ -1,5 +1,6 @@
 // src/app/admin/submissions/page.tsx
 import { createClient } from "@supabase/supabase-js";
+import { renderTimeRange } from "@/lib/time";
 
 function supabaseAdmin() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -40,7 +41,7 @@ export default async function DealSubmissionsPage() {
             <div className="mt-2 text-sm text-gray-600">
               {r.days?.length ? <div>Days: {r.days.join(", ")}</div> : null}
               {(r.start_time || r.end_time) ? (
-                <div>Time: {r.start_time ?? "—"} → {r.end_time ?? "—"}</div>
+                <div>Time: {renderTimeRange(r.start_time, r.end_time) || "—"}</div>
               ) : null}
               {r.submitter_email ? <div>Submitted by: {r.submitter_email}</div> : null}
             </div>

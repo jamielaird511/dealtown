@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import DayTabs, { Sel, todayIndex } from '@/components/ui/DayTabs';
 import Section from '@/components/ui/Section';
 import DealCard from '@/components/ui/DealCard';
+import { renderTimeRange } from '@/lib/time';
 
 const hhmm = (t?: string | null) => (t ? t.slice(0,5) : '');
 const timeRange = (s?: string|null, e?: string|null) => {
@@ -48,9 +49,7 @@ export default function LunchClient({ items }: { items: Item[] }) {
               const badgeText =
                 typeof d.price === 'number'
                   ? `$${d.price.toFixed(2)}`
-                  : d.start_time && d.end_time
-                  ? `${d.start_time.slice(0,5)} — ${d.end_time.slice(0,5)}`
-                  : undefined;
+                  : renderTimeRange(d.start_time, d.end_time) || undefined;
 
               return (
                 <DealCard

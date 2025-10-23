@@ -3,13 +3,7 @@ import { useMemo, useState } from 'react';
 import DayTabs, { Sel, todayIndex } from '@/components/ui/DayTabs';
 import Section from '@/components/ui/Section';
 import DealCard from '@/components/ui/DealCard';
-
-function fmtTime(t?: string | null) {
-  if (!t) return "";
-  // t is "HH:MM:SS" or "HH:MM" — keep it simple and show "HH:MM"
-  const [h, m] = t.split(":");
-  return `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
-}
+import { renderTimeRange } from '@/lib/time';
 
 type Item = {
   id: string;
@@ -57,11 +51,7 @@ export default function HappyHourClient({ items }: { items: Item[] }) {
                 venueId={hh.venue_id}
                 dealTitle={null}                // ← use null instead of undefined
                 notes={hh.notes}
-                badgeText={
-                  hh.start_time && hh.end_time
-                    ? `${fmtTime(hh.start_time)} — ${fmtTime(hh.end_time)}`
-                    : undefined
-                }
+                badgeText={renderTimeRange(hh.start_time, hh.end_time) || undefined}
                 context="happy_hour"
                 venueWebsite={hh.venueWebsite}
               />

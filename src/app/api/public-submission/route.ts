@@ -3,6 +3,7 @@ import { SubmissionSchema } from "@/lib/validators";
 import { sendHtmlEmail } from "@/lib/email";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import { renderTimeRange } from "@/lib/time";
 
 const cache = new Map<string, number>(); // simple per-IP throttle
 
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
     ["Title", data.title || data.banner_title || "—"],
     ["Tagline", data.tagline || data.offer_summary || "—"],
     ["Days", Array.isArray(data.days) ? data.days.join(", ") : data.weekdays ? "Weekdays" : "—"],
-    ["Time", data.start_time || data.end_time ? `${data.start_time || "—"}–${data.end_time || "—"}` : "—"],
+    ["Time", renderTimeRange(data.start_time, data.end_time) || "—"],
     ["Submitter", data.submitter_email],
   ];
 

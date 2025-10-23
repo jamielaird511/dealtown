@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { renderTimeRange } from "./time";
 
 const resendKey = process.env.RESEND_API_KEY;
 if (!resendKey) {
@@ -79,7 +80,7 @@ export async function sendSubmissionEmailHTTP(payload: {
         <tr><th align="left">Venue</th><td>${payload.venue_name ?? ""}</td></tr>
         <tr><th align="left">Title</th><td>${payload.deal_title ?? ""}</td></tr>
         <tr><th align="left">Days</th><td>${formatDays(payload.days)}</td></tr>
-        <tr><th align="left">Time</th><td>${payload.start_time ?? ""} – ${payload.end_time ?? ""}</td></tr>
+        <tr><th align="left">Time</th><td>${renderTimeRange(payload.start_time, payload.end_time) || "—"}</td></tr>
         <tr><th align="left">Category</th><td>${formatCategory(payload.category)}</td></tr>
         <tr><th align="left">Notes</th><td>${payload.description ?? ""}</td></tr>
         <tr><th align="left">Submitter</th><td>${payload.submitter_email ?? ""}</td></tr>

@@ -90,7 +90,7 @@ export default async function NewDealPage({ searchParams }: { searchParams?: { e
             name="notes"
             rows={3}
             className="w-full rounded border px-3 py-2"
-            placeholder="Optional details about the deal..."
+            placeholder="Internal notes (not shown publicly)"
           />
         </div>
 
