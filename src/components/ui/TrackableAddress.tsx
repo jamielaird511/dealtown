@@ -1,26 +1,21 @@
 "use client";
 import { MapPin } from "lucide-react";
+import { logEvent } from "@/lib/analytics";
 
 function mapsUrlFromAddress(address: string) {
   const q = encodeURIComponent(address ?? "");
   return `https://www.google.com/maps/search/?api=1&query=${q}`;
 }
 
-async function logClick(body: any) {
-  try {
-    const url = "/api/track-click";
-    const json = JSON.stringify(body);
-    if ("sendBeacon" in navigator) {
-      const blob = new Blob([json], { type: "application/json" });
-      (navigator as any).sendBeacon(url, blob);
-      return;
-    }
-    await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: json, keepalive: true });
-  } catch { /* never block navigation */ }
-}
-
-export default function TrackableAddress({ address, venueId, context, className }: {
-  address: string; venueId?: number|null; context?: "deal"|"happy_hour"|"lunch"; className?: string;
+export default function TrackableAddress({
+  address, venueId, context, entityType, entityId, className,
+}: {
+  address: string;
+  venueId?: number | null;
+  context?: "deal" | "happy_hour" | "lunch";
+  entityType?: "deal" | "happy_hour" | "lunch";
+  entityId?: number | string | null;
+  className?: string;
 }) {
   const href = mapsUrlFromAddress(address);
   return (
@@ -32,7 +27,19 @@ export default function TrackableAddress({ address, venueId, context, className 
         className ??
         "group inline-flex items-center gap-1 text-sm text-gray-700 hover:text-orange-600 font-medium transition-colors"
       }
-      onClick={() => logClick({ type: "address", venue_id: venueId ?? null, target_url: href, context })}
+      onClick={() =>
+        logEvent({
+          type: "address",
+          category: "engagement",
+          action: "click",
+          label: "address_link",
+          venue_id: venueId ?? null,
+          entity_type: entityType ?? context ?? null,
+          entity_id: entityId ?? null,
+          target_url: href,
+          context,
+        })
+      }
     >
       <MapPin size={14} className="text-gray-500 group-hover:text-orange-500 transition-colors" />
       <span>{address}</span>

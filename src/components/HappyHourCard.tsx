@@ -43,7 +43,13 @@ export default function HappyHourCard({ hh }: { hh: HH }) {
           <h3 className="text-lg font-semibold">{venueName}</h3>
         {venueAddress && (
           <p className="text-sm text-gray-600">
-            <TrackableAddress address={venueAddress} venueId={hh.venue_id} context="happy_hour" />
+            <TrackableAddress 
+              address={venueAddress} 
+              venueId={hh.venue_id} 
+              context="happy_hour"
+              entityType="happy_hour"
+              entityId={hh.id}
+            />
           </p>
         )}
         </div>
@@ -51,6 +57,8 @@ export default function HappyHourCard({ hh }: { hh: HH }) {
           variant="pill"
           title={`Happy Hour at ${venueName} – DealTown`}
           text={`Happy Hour: ${hh.title ?? "Great specials"} at ${venueName}`}
+          entityType="happy_hour"
+          entityId={hh.id}
         />
       </div>
 

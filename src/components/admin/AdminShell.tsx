@@ -7,6 +7,8 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     { href: "/admin/venues", label: "Venues" },
     { href: "/admin/deals", label: "Deals" },
     { href: "/admin/happy-hours", label: "Happy Hour" },
+    { href: "/admin/lunch", label: "Lunch Menus" },
+    { href: "/admin/analytics", label: "Analytics" },
   ];
 
   return (

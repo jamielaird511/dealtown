@@ -62,6 +62,7 @@ export async function GET(req: Request) {
 
       return {
         id: r.id,
+        venue_id: r.venue_id, // ✅ Include venue_id for analytics
         title: r.title ?? "Happy Hour",
         description: r.details ?? null,
         price_cents: typeof r.price_cents === "number" ? r.price_cents : null,

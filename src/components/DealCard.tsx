@@ -37,7 +37,13 @@ export default function DealCard({ deal }: { deal: Deal }) {
           {/* Address (subtle) */}
           {deal.venue_address && (
             <div className="text-xs text-gray-500">
-              <TrackableAddress address={deal.venue_address} venueId={deal.venue_id} context="deal" />
+              <TrackableAddress 
+                address={deal.venue_address} 
+                venueId={deal.venue_id} 
+                context="deal"
+                entityType="deal"
+                entityId={deal.id}
+              />
             </div>
           )}
 
@@ -80,6 +86,8 @@ export default function DealCard({ deal }: { deal: Deal }) {
           variant="pill"
           title={`${deal.title} at ${deal.venue_name} – DealTown`}
           text={`Found a deal at ${deal.venue_name}`}
+          entityType="deal"
+          entityId={deal.id}
         />
       </div>
     </li>

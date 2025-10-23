@@ -1,8 +1,10 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import DayTabs, { Sel, todayIndex } from '@/components/ui/DayTabs';
 import Section from '@/components/ui/Section';
 import DealCard from '@/components/ui/DealCard';
+import { observeImpressions } from '@/lib/client/impression';
+import { logEvent } from '@/lib/analytics';
 
 type Item = {
   id: string;
@@ -32,6 +34,22 @@ export default function DealsClient({ items }: { items: Item[] }) {
     [items, activeDay]
   );
 
+  // Track impressions when cards come into view
+  useEffect(() => {
+    if (filtered.length > 0) {
+      observeImpressions('[data-id]', (id) => {
+        logEvent({
+          type: "impression", // legacy
+          category: "engagement",
+          action: "impression",
+          label: "deal_card",
+          entity_type: "deal",
+          entity_id: id
+        });
+      });
+    }
+  }, [filtered]);
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 text-base text-neutral-900 leading-normal">
       <DayTabs sel={sel} onChange={setSel} />
@@ -43,6 +61,7 @@ export default function DealsClient({ items }: { items: Item[] }) {
             {filtered.map(d => (
               <DealCard
                 key={d.id}
+                id={d.id}
                 venueName={d.venueName}
                 addressLine={d.addressLine}
                 venueId={d.venue_id}

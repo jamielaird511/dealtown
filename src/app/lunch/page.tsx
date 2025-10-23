@@ -11,7 +11,7 @@ export default async function LunchPage() {
     .select(`
       id, title, description, price_cents,
       start_time, end_time, days, is_active,
-      venue_name, venue_address
+      venue_id, venue_name, venue_address
     `)
     .eq('is_active', true);
 
@@ -39,6 +39,7 @@ export default async function LunchPage() {
 
   const items = rows.map((row: any) => ({
     id: row.id,
+    venue_id: row.venue_id, // ✅ Include venue_id for analytics
     title: row.title,
     description: row.description,
     price: row.price_cents != null ? row.price_cents / 100 : null,

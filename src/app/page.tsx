@@ -10,6 +10,7 @@ export default async function HomePage() {
     .from("deals")
     .select(`
       id,
+      venue_id,
       title,
       description,
       price_cents,
@@ -49,6 +50,7 @@ export default async function HomePage() {
 
   const items = (data ?? []).map((row: any) => ({
     id: row.id,
+    venue_id: row.venue_id, // ✅ Include venue_id for analytics
     title: row.title,                   // deal title (e.g., "Taco Tuesday")
     description: row.description,       // notes
     price: (row.effective_price_cents ?? row.price_cents ?? null) / 100 || null,

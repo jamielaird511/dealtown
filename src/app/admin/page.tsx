@@ -23,6 +23,7 @@ export default async function AdminDashboard() {
         <AdminCard title="Deals" description="Daily food & drink deals." href="/admin/deals" />
         <AdminCard title="Happy Hour" description="Times & days for drink specials." href="/admin/happy-hours" />
         <AdminCard title="Lunch Menus" description="Add, edit, and archive lunch menu items." href="/admin/lunch" />
+        <AdminCard title="Analytics" description="Clicks by venue & day." href="/admin/analytics" />
       </div>
     </div>
   );

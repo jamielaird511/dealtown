@@ -10,6 +10,7 @@ export type DealCardProps = {
   notes?: string | null;          // description / fine print
   badgeText?: string;             // e.g., "$15.00"
   context?: "deal" | "happy_hour" | "lunch";
+  id?: string | number;           // for impression tracking
 };
 
 export default function DealCard({
@@ -20,9 +21,10 @@ export default function DealCard({
   notes,
   badgeText,
   context = "deal",
+  id,
 }: DealCardProps) {
   return (
-    <li className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+    <li className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm" data-id={id}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {/* Venue */}
@@ -33,7 +35,13 @@ export default function DealCard({
           {/* Address */}
           {addressLine ? (
             <div className="mt-1 text-sm text-neutral-500">
-              <TrackableAddress address={addressLine} venueId={venueId} context={context} />
+              <TrackableAddress 
+                address={addressLine} 
+                venueId={venueId} 
+                context={context}
+                entityType={context}
+                entityId={id}
+              />
             </div>
           ) : null}
 
@@ -64,6 +72,8 @@ export default function DealCard({
           variant="pill"
           title={`${dealTitle || 'Deal'} at ${venueName} – DealTown`}
           text={`Found a deal at ${venueName}`}
+          entityType={context}
+          entityId={id}
         />
       </div>
     </li>
