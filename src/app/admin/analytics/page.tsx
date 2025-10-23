@@ -43,6 +43,7 @@ export default async function AnalyticsPage() {
   let events: ClickEvent[] = [];
   let venues: Venue[] = [];
   let errorMsg: string | null = null;
+  let labels = new Map<string, string>(); // key `${type}:${id}` -> label
 
   try {
     const sb = supabaseAdmin();
@@ -90,7 +91,6 @@ export default async function AnalyticsPage() {
     }
 
     // Look up titles/names
-    const labels = new Map<string, string>(); // key `${type}:${id}` -> label
 
     if (ids.deal.size) {
       const { data } = await sb.from("deals").select("id,title").in("id", Array.from(ids.deal));
