@@ -1,8 +1,7 @@
 "use client";
 
 import { Share2 } from "lucide-react";
-// use a relative path so we don't rely on TS path aliases in prod builds
-import { logEvent } from "../../lib/analytics";
+import { logEvent } from "@/lib/analytics";
 
 type Props = {
   className?: string;
