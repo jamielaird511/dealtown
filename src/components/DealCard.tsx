@@ -30,7 +30,6 @@ export default function DealCard({ deal }: { deal: Deal }) {
     deal?.website_url ??
     deal?.venue?.website ??
     deal?.venue?.website_url ??
-    deal?.venue?.url ??
     deal?.venue_website
   );
 
