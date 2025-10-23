@@ -58,7 +58,7 @@ export default function HeaderMenu() {
         onClick={() => setOpen(v => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="rounded-full border px-3 py-1 text-sm hover:bg-gray-50"
+        className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
       >
         Menu
       </button>
