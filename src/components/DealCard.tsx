@@ -75,7 +75,7 @@ export default function DealCard({ deal }: { deal: Deal }) {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() =>
-                window?.analytics?.track?.("venue_website_click", {
+                (window as any)?.analytics?.track?.("venue_website_click", {
                   venue_id: deal?.venue_id ?? deal?.venue?.id ?? null,
                   deal_id: deal?.id ?? null,
                   category: deal?.category ?? null,
