@@ -1,6 +1,8 @@
 import React from 'react';
+import { ExternalLink } from "lucide-react";
 import ShareButton from './ShareButton';
 import TrackableAddress from './TrackableAddress';
+import { normalizeHttpUrl } from '@/lib/url';
 
 export type DealCardProps = {
   venueName: string | null;
@@ -11,6 +13,7 @@ export type DealCardProps = {
   badgeText?: string;             // e.g., "$15.00"
   context?: "deal" | "happy_hour" | "lunch";
   id?: string | number;           // for impression tracking
+  venueWebsite?: string | null;   // venue website URL
 };
 
 export default function DealCard({
@@ -22,7 +25,9 @@ export default function DealCard({
   badgeText,
   context = "deal",
   id,
+  venueWebsite,
 }: DealCardProps) {
+  const normalizedWebsite = normalizeHttpUrl(venueWebsite);
   return (
     <li className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm" data-id={id}>
       <div className="flex items-start justify-between gap-3">
@@ -56,6 +61,25 @@ export default function DealCard({
           {notes ? (
             <p className="mt-1 text-sm text-neutral-700">{notes}</p>
           ) : null}
+
+          {/* Website link */}
+          {normalizedWebsite && (
+            <a
+              href={normalizedWebsite}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() =>
+                window?.analytics?.track?.("venue_website_click", {
+                  venue_id: venueId ?? null,
+                  deal_id: id ?? null,
+                  category: context ?? null,
+                })
+              }
+              className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-gray-900 hover:underline"
+            >
+              Visit website <ExternalLink className="h-4 w-4" />
+            </a>
+          )}
         </div>
 
         {/* Price badge (optional) */}

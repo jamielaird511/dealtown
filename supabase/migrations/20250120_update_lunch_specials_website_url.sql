@@ -1,5 +1,5 @@
--- Create enriched lunch_specials view that includes venue fields
--- This view provides a consistent shape for the UI with all necessary fields
+-- Update lunch_specials view to include venue website_url
+-- This adds the website_url field to the view for "Visit website" links
 
 create or replace view public.lunch_specials as
 select

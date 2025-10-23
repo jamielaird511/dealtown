@@ -68,7 +68,7 @@ export async function fetchVenueDeals(venueId: number, day?: string): Promise<De
 
   const selectCols = `
     id, title, notes, price_cents, day_of_week, is_active, venue_id,
-    venues:venues!deals_venue_id_fkey ( id, name, address, website_url )
+    venues:venues!deals_venue_id_fkey(id, name, address, website_url)
   `;
 
   let q = supabase.from("deals").select(selectCols).eq("venue_id", venueId).eq("is_active", true);
@@ -119,7 +119,7 @@ export async function fetchDeals(day?: string): Promise<Deal[]> {
   // Query deals table with explicit venue relationship
   const selectCols = `
     id, title, notes, price_cents, day_of_week, is_active, venue_id,
-    venues:venues!deals_venue_id_fkey ( id, name, address, website_url )
+    venues:venues!deals_venue_id_fkey(id, name, address, website_url)
   `;
 
   const { data, error } = await supabase

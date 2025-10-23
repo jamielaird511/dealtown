@@ -15,6 +15,7 @@ type Item = {
   days_of_week: number[] | null;
   venueName: string | null;
   addressLine: string | null;
+  venue?: { id?: number; name?: string; address?: string; website?: string; website_url?: string } | null;
 };
 
 export default function DealsClient({ items }: { items: Item[] }) {
@@ -69,6 +70,7 @@ export default function DealsClient({ items }: { items: Item[] }) {
                 notes={d.description}               // notes / details
                 badgeText={d.price != null ? `$${d.price.toFixed(2)}` : undefined}
                 context="deal"
+                venueWebsite={d.venue?.website_url ?? d.venue?.website ?? null}
               />
             ))}
           </ul>

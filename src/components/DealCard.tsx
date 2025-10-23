@@ -1,6 +1,8 @@
 // src/components/DealCard.tsx
+import { ExternalLink } from "lucide-react";
 import ShareButton from "@/components/ui/ShareButton";
 import TrackableAddress from "@/components/ui/TrackableAddress";
+import { normalizeHttpUrl } from "@/lib/url";
 
 type Deal = {
   id: string | number;
@@ -12,6 +14,8 @@ type Deal = {
   price_cents?: number | null;
   venue_name?: string | null;
   venue_address?: string | null;
+  venue?: { id?: number; name?: string; address?: string; website?: string; website_url?: string } | null;
+  category?: string | null;
 };
 
 function formatCents(cents?: number | null) {
@@ -22,6 +26,13 @@ function formatCents(cents?: number | null) {
 export default function DealCard({ deal }: { deal: Deal }) {
   const price = formatCents(deal.price_cents);
   const desc = deal.description ?? deal.notes ?? null;
+  const venueWebsite = normalizeHttpUrl(
+    deal?.website_url ??
+    deal?.venue?.website ??
+    deal?.venue?.website_url ??
+    deal?.venue?.url ??
+    deal?.venue_website
+  );
 
   return (
     <li className="rounded-lg border p-4 sm:p-5">
@@ -60,14 +71,21 @@ export default function DealCard({ deal }: { deal: Deal }) {
           )}
 
           {/* Website link (optional) */}
-          {deal.website_url && (
+          {venueWebsite && (
             <a
-              href={deal.website_url}
+              href={venueWebsite}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-flex items-center text-xs text-blue-600 hover:underline"
+              onClick={() =>
+                window?.analytics?.track?.("venue_website_click", {
+                  venue_id: deal?.venue_id ?? deal?.venue?.id ?? null,
+                  deal_id: deal?.id ?? null,
+                  category: deal?.category ?? null,
+                })
+              }
+              className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-gray-900 hover:underline"
             >
-              Website
+              Visit website <ExternalLink className="h-4 w-4" />
             </a>
           )}
         </div>

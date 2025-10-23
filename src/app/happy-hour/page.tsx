@@ -17,7 +17,7 @@ export default async function HappyHourPage() {
       end_time,
       days,
       is_active,
-      venue:venues!happy_hours_venue_id_fkey(name, address, suburb)
+      venue:venues!happy_hours_venue_id_fkey(name, address, suburb, website_url)
     `)
     .eq("is_active", true);
 
@@ -63,6 +63,7 @@ export default async function HappyHourPage() {
 
     venueName: row.venue?.name ?? null,
     addressLine: [row.venue?.address, row.venue?.suburb].filter(Boolean).join(", ") || null,
+    venueWebsite: row.venue?.website_url ?? null,
   }));
 
   return <HappyHourClient items={items} />;

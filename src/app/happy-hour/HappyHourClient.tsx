@@ -20,6 +20,7 @@ type Item = {
   notes: string | null;
   venueName: string | null;
   addressLine: string | null;
+  venueWebsite?: string | null;
 };
 
 export default function HappyHourClient({ items }: { items: Item[] }) {
@@ -62,6 +63,7 @@ export default function HappyHourClient({ items }: { items: Item[] }) {
                     : undefined
                 }
                 context="happy_hour"
+                venueWebsite={hh.venueWebsite}
               />
             ))}
           </ul>

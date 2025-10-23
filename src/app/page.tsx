@@ -19,7 +19,7 @@ export default async function HomePage() {
       day_of_week,
       venue_name,
       venue_address,
-      venue:venues!deals_venue_id_fkey(name, address, suburb)
+      venue:venues!deals_venue_id_fkey(id, name, address, website_url)
     `)
     .eq("is_active", true);
 
@@ -62,6 +62,15 @@ export default async function HomePage() {
       row.venue_address ??
       ([row.venue?.address, row.venue?.suburb].filter(Boolean).join(", ") ||
       null),
+    
+    // ✅ Include venue object with website for DealCard
+    venue: row.venue ? {
+      id: row.venue_id,
+      name: row.venue.name,
+      address: row.venue.address,
+      website: row.venue.website,
+      website_url: row.venue.website_url
+    } : null,
   }));
 
   return <DealsClient items={items} />;

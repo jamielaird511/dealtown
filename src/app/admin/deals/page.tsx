@@ -17,9 +17,7 @@ export default async function AdminDealsPage() {
     .select(
       `
       id, title, day_of_week, is_active, venue_id, price_cents, notes, created_at, updated_at,
-      venue:venues!deals_venue_id_fkey (
-        id, name, address, website_url
-      )
+      venue:venues!deals_venue_id_fkey(id, name, address, website_url)
     `
     )
     .order("price_cents", { ascending: true, nullsFirst: false })

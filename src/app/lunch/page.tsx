@@ -7,11 +7,12 @@ export default async function LunchPage() {
   const supabase = getSupabaseServerComponentClient();
   
   const { data, error } = await supabase
-    .from('lunch_specials')
+    .from('lunch_menus')
     .select(`
       id, title, description, price_cents,
-      start_time, end_time, days, is_active,
-      venue_id, venue_name, venue_address
+      start_time, end_time, days_of_week, is_active,
+      venue_id,
+      venue:venues!lunch_menus_venue_id_fkey(*)
     `)
     .eq('is_active', true);
 
@@ -22,8 +23,8 @@ export default async function LunchPage() {
   // Day filtering (match your other pages)
   // 0=Sun ... 6=Sat (same convention we used elsewhere)
   const todayIdx = new Date().getDay();
-  const showToday = (row: { days: number[] | null }) =>
-    !row.days || row.days.length === 0 || row.days.includes(todayIdx);
+  const showToday = (row: { days_of_week: number[] | null }) =>
+    !row.days_of_week || row.days_of_week.length === 0 || row.days_of_week.includes(todayIdx);
 
   const rows = (data ?? []).filter(showToday);
 
@@ -34,7 +35,7 @@ export default async function LunchPage() {
     const at = a.start_time ? a.start_time : '99:99';
     const bt = b.start_time ? b.start_time : '99:99';
     if (at !== bt) return at.localeCompare(bt);
-    return (a.venue_name ?? '').localeCompare(b.venue_name ?? '');
+    return (a.venue?.name ?? '').localeCompare(b.venue?.name ?? '');
   });
 
   const items = rows.map((row: any) => ({
@@ -43,11 +44,12 @@ export default async function LunchPage() {
     title: row.title,
     description: row.description,
     price: row.price_cents != null ? row.price_cents / 100 : null,
-    days_of_week: row.days ?? null,
+    days_of_week: row.days_of_week ?? null,
     start_time: row.start_time,
     end_time: row.end_time,
-    venueName: row.venue_name ?? null,
-    addressLine: row.venue_address ?? null,
+    venueName: row.venue?.name ?? null,
+    addressLine: row.venue ? [row.venue.address, row.venue.city].filter(Boolean).join(", ") : null,
+    venueWebsite: row.venue?.website_url ?? null,
   }));
 
   return <LunchClient items={items} />;

@@ -21,6 +21,7 @@ type Item = {
   end_time: string | null;
   venueName: string | null;
   addressLine: string | null;
+  venueWebsite?: string | null;
 };
 
 export default function LunchClient({ items }: { items: Item[] }) {
@@ -61,6 +62,7 @@ export default function LunchClient({ items }: { items: Item[] }) {
                   notes={d.description}
                   badgeText={badgeText}
                   context="lunch"
+                  venueWebsite={d.venueWebsite}
                 />
               );
             })}
