@@ -1,8 +1,8 @@
 "use client";
 
 import { Share2 } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
-import { logEvent } from "@/lib/analytics"; // central helper
+// use a relative path so we don't rely on TS path aliases in prod builds
+import { logEvent } from "../../lib/analytics";
 
 type Props = {
   className?: string;
@@ -26,15 +26,12 @@ export default function ShareButton({
   async function handleClick() {
     const targetUrl = url ?? window.location.href;
     const shareText = text ?? title;
-
-    // default so we always send a method
     let method: "system" | "copy" = "copy";
 
     try {
       if (navigator.share) {
         method = "system";
         await navigator.share({ title, text: shareText, url: targetUrl });
-        // success → log share
         await logEvent({
           type: "share",
           category: "engagement",
@@ -48,7 +45,6 @@ export default function ShareButton({
         return;
       }
 
-      // Fallback: copy URL to clipboard
       await navigator.clipboard.writeText(targetUrl);
       await logEvent({
         type: "share",
@@ -60,8 +56,7 @@ export default function ShareButton({
         target_url: targetUrl,
         method,
       });
-    } catch (err) {
-      // User cancelled native sheet or copy failed → still useful to know
+    } catch {
       await logEvent({
         type: "share",
         category: "engagement",
@@ -75,16 +70,19 @@ export default function ShareButton({
     }
   }
 
+  const basePill =
+    "inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium bg-orange-500 text-white shadow hover:opacity-90 active:translate-y-px";
+  const baseLink = "inline-flex items-center gap-1 underline underline-offset-2";
+  const classes = [
+    variant === "pill" ? basePill : baseLink,
+    className || "",
+  ].join(" ");
+
   return (
     <button
       type="button"
       onClick={handleClick}
-      className={cn(
-        variant === "pill"
-          ? "inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium bg-orange-500 text-white shadow hover:opacity-90 active:translate-y-px"
-          : "inline-flex items-center gap-1 underline underline-offset-2",
-        className
-      )}
+      className={classes}
       aria-label="Share this"
     >
       <Share2 className="h-4 w-4" aria-hidden />
