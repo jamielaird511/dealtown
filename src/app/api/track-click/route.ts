@@ -15,9 +15,11 @@ export async function POST(req: Request) {
     const vercelCity = h.get("x-vercel-ip-city");
     const vercelRegion = h.get("x-vercel-ip-region");
     const isProd = process.env.NODE_ENV === "production";
+    // decode helper for URL-encoded header values, e.g. 'Santa%20Clara'
+    const decodeHeader = (v: string | null) => (v ? decodeURIComponent(v) : v);
     const country = vercelCountry ?? (isProd ? null : "NZ");
-    const city    = vercelCity    ?? (isProd ? null : "Queenstown");
-    const region  = vercelRegion  ?? (isProd ? null : "OTA");
+    const city    = decodeHeader(vercelCity)   ?? (isProd ? null : "Queenstown");
+    const region  = decodeHeader(vercelRegion) ?? (isProd ? null : "OTA");
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
