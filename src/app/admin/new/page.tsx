@@ -34,7 +34,6 @@ export default async function NewDealPage({ searchParams }: { searchParams?: { e
             {(venues ?? []).map((v) => (
               <option key={v.id} value={v.id}>
                 {v.name}
-                {v.address ? ` — ${v.address}` : ""}
               </option>
             ))}
           </select>
