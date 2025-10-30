@@ -7,6 +7,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Surface background for subtle elevation */
+html, body {
+  background-color: #F9FAFB;
+}
+
+@layer components {
+  /* Type utilities */
+  .h1 {
+    @apply font-semibold text-2xl md:text-3xl tracking-tight text-slate-900;
+  }
+  .h2 {
+    @apply font-semibold text-lg md:text-xl tracking-tight text-slate-900;
+  }
+  .lead {
+    @apply text-slate-600;
+  }
+
+  /* Card skeleton */
+  .card {
+    @apply rounded-2xl bg-white border;
+    box-shadow: theme('boxShadow.card', '0 1px 2px rgba(0,0,0,0.06), 0 6px 20px rgba(0,0,0,0.04)');
+    border-color: theme('colors.border', '#E5E7EB');
+  }
+  .card-hover {
+    @apply transition-all hover:shadow-lg;
+  }
+
+  /* Link polish */
+  .link {
+    @apply underline underline-offset-4 hover:no-underline;
+  }
+
+  /* Focus visibility */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+  }
+}
+
 :root {
   /* BRAND — swap with your exact values */
   --brand: #ff6a00; /* your orange */
@@ -35,11 +73,6 @@ body {
   background: color-mix(in oklab, var(--brand) 12%, white);
   color: #111827;
   border: 1px solid color-mix(in oklab, var(--brand) 28%, #e5e7eb);
-}
-
-.card {
-  @apply rounded-2xl border bg-white p-5 shadow-sm;
-  border-color: #eef0f3;
 }
 
 /* Hide scrollbar for horizontal pill strips */
