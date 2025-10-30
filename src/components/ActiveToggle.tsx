@@ -1,8 +1,10 @@
 "use client";
 import { useTransition, useState } from "react";
 
-export function ActiveToggle({ id, initial }: { id: number; initial: boolean }) {
-  const [isActive, setIsActive] = useState(initial);
+export function ActiveToggle({ id, initial }: { id: string | number; initial: number | boolean }) {
+  const idStr = String(id);
+  const initialBool = typeof initial === "number" ? initial === 1 : !!initial;
+  const [isActive, setIsActive] = useState(initialBool);
   const [pending, start] = useTransition();
 
   return (
@@ -13,10 +15,10 @@ export function ActiveToggle({ id, initial }: { id: number; initial: boolean }) 
         const next = !isActive;
         setIsActive(next); // optimistic
         start(async () => {
-          const res = await fetch(`/api/admin/deals/${id}`, {
+          const res = await fetch(`/api/admin/deals/${idStr}`, {
             method: "PATCH",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ is_active: next }),
+            body: JSON.stringify({ id: idStr, is_active: next }),
           });
           if (!res.ok) {
             setIsActive(!next);
