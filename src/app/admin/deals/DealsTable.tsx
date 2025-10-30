@@ -86,7 +86,16 @@ export default function DealsTable({ deals }: { deals: DealRow[] }) {
             {sortedDeals.map((d) => (
               <tr key={d.id} className="border-b hover:bg-gray-50">
                 <td className="p-3">
-                  <ActiveToggle id={d.id} initial={d.is_active} />
+                  <ActiveToggle
+                    id={d.id}
+                    initial={
+                      Number(
+                        typeof (d as any).active !== "undefined"
+                          ? (typeof (d as any).active === "boolean" ? ((d as any).active ? 1 : 0) : (d as any).active)
+                          : (typeof (d as any).is_active === "boolean" ? ((d as any).is_active ? 1 : 0) : (d as any).is_active)
+                      )
+                    }
+                  />
                 </td>
                 <td className="p-3">{d.title}</td>
                 <td className="p-3">

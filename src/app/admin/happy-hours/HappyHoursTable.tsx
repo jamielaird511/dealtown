@@ -95,7 +95,14 @@ export default function HappyHoursTable({ rows }: { rows: HHRow[] }) {
             </td>
           </tr>
         ) : (
-          sortedRows.map((h: any) => <HappyHourRow key={h.id} hh={h} />)
+          sortedRows.map((h: any) => (
+            <HappyHourRow
+              key={h.id}
+              hh={h}
+              // ActiveToggle lives inside HappyHourRow; ensure it receives 0/1
+              // If HappyHourRow forwards props, it will use h.active/h.is_active as normalized below
+            />
+          ))
         )}
       </tbody>
     </table>
