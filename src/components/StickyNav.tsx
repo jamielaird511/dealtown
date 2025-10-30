@@ -22,7 +22,7 @@ export default function StickyNav() {
   return (
     <nav
       className="
-        sticky top-0 z-50
+        sticky top-0 z-30
         bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60
         border-b
       "
