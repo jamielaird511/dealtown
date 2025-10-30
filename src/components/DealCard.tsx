@@ -33,42 +33,41 @@ export default function DealCard({ deal }: { deal: Deal }) {
   );
 
   return (
-    <li className="rounded-lg border p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-4">
-        {/* LEFT: content */}
-        <div className="min-w-0">
-          {/* Venue first (prominent) */}
+    <li className="card card-hover">
+      <div className="p-5 md:p-6">
+        {/* Header: venue name + price badge */}
+        <div className="flex items-start justify-between gap-3">
           {deal.venue_name && (
-            <div className="text-base font-semibold text-gray-900">
-              {deal.venue_name}
-            </div>
+            <div className="text-base font-semibold text-gray-900">{deal.venue_name}</div>
           )}
-          {/* Address (subtle) */}
-          {deal.venue_address && (
-            <div className="text-xs text-gray-500">
-              <TrackableAddress 
-                address={deal.venue_address} 
-                venueId={deal.venue_id} 
-                context="deal"
-                entityType="deal"
-                entityId={deal.id}
-              />
-            </div>
+          {price && (
+            <span className="shrink-0 rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-600">
+              {price}
+            </span>
           )}
+        </div>
 
-          {/* Deal title */}
-          <h3 className="mt-1 text-sm font-medium text-gray-900">
-            {deal.title}
-          </h3>
+        {/* Address (full width) */}
+        {deal.venue_address && (
+          <div className="mt-1 text-xs text-gray-500">
+            <TrackableAddress 
+              address={deal.venue_address} 
+              venueId={deal.venue_id} 
+              context="deal"
+              entityType="deal"
+              entityId={deal.id}
+            />
+          </div>
+        )}
 
-          {/* Description / notes */}
-          {desc && (
-            <p className="mt-1 text-sm text-gray-700">
-              {desc}
-            </p>
-          )}
+        {/* Deal title */}
+        <h3 className="mt-1 text-sm font-medium text-gray-900">{deal.title}</h3>
 
-          {/* Website link (optional) */}
+        {/* Description (full width) */}
+        {desc && <p className="mt-2 text-sm text-gray-700">{desc}</p>}
+
+        {/* Footer actions */}
+        <div className="mt-4 flex items-center gap-4">
           {venueWebsite && (
             <a
               href={venueWebsite}
@@ -81,30 +80,19 @@ export default function DealCard({ deal }: { deal: Deal }) {
                   category: deal?.category ?? null,
                 })
               }
-              className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-gray-900 hover:underline"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-gray-900 underline"
             >
               Visit website <ExternalLink className="h-4 w-4" />
             </a>
           )}
+          <ShareButton
+            variant="pill"
+            title={`${deal.title} at ${deal.venue_name} – DealTown`}
+            text={`Found a deal at ${deal.venue_name}`}
+            entityType="deal"
+            entityId={deal.id}
+          />
         </div>
-
-        {/* RIGHT: price badge (if any) */}
-        {price && (
-          <div className="shrink-0 rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-600">
-            {price}
-          </div>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="mt-3 flex items-center gap-4">
-        <ShareButton
-          variant="pill"
-          title={`${deal.title} at ${deal.venue_name} – DealTown`}
-          text={`Found a deal at ${deal.venue_name}`}
-          entityType="deal"
-          entityId={deal.id}
-        />
       </div>
     </li>
   );

@@ -37,12 +37,21 @@ export default function HappyHourCard({ hh }: { hh: HH }) {
   const timeRange = range(hh.starts_at, hh.ends_at);
 
   return (
-    <article className="rounded-2xl border p-3 bg-white shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+    <article className="card card-hover">
+      <div className="p-5 md:p-6">
+        {/* Header: name + time pill */}
+        <div className="flex items-start justify-between gap-3">
           <h3 className="text-lg font-semibold">{venueName}</h3>
+          {timeRange && (
+            <span className="shrink-0 inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-orange-50 text-orange-700 ring-1 ring-orange-200">
+              {timeRange}
+            </span>
+          )}
+        </div>
+
+        {/* Address (full width) */}
         {venueAddress && (
-          <p className="text-sm text-gray-600">
+          <div className="mt-1 text-xs text-gray-500">
             <TrackableAddress 
               address={venueAddress} 
               venueId={hh.venue_id} 
@@ -50,45 +59,36 @@ export default function HappyHourCard({ hh }: { hh: HH }) {
               entityType="happy_hour"
               entityId={hh.id}
             />
-          </p>
-        )}
-        </div>
-        <ShareButton
-          variant="pill"
-          title={`Happy Hour at ${venueName} – DealTown`}
-          text={`Happy Hour: ${hh.title ?? "Great specials"} at ${venueName}`}
-          entityType="happy_hour"
-          entityId={hh.id}
-        />
-      </div>
-
-      <div className="mt-3 space-y-2">
-        {timeRange && (
-          <div className="inline-flex items-center gap-2 text-sm">
-            <span
-              className="
-                inline-flex items-center rounded-full
-                px-3 py-1 text-sm font-medium
-                bg-orange-50 text-orange-700 ring-1 ring-orange-200
-                hover:bg-orange-100
-              "
-            >
-              {timeRange}
-            </span>
           </div>
         )}
 
-        {/* show notes only if present */}
-        {hh.description && <p className="text-sm">{hh.description}</p>}
-      </div>
+        {/* Title (optional) */}
+        {hh.title && <p className="mt-3 text-base font-semibold text-orange-500">{hh.title}</p>}
 
-      {website && (
-        <div className="mt-3">
-          <a href={website} target="_blank" rel="noreferrer" className="text-sm underline">
-            Website
-          </a>
+        {/* Description (full width) */}
+        {hh.description && <p className="mt-2 text-sm text-gray-700">{hh.description}</p>}
+
+        {/* Footer actions */}
+        <div className="mt-4 flex items-center gap-4">
+          {website && (
+            <a
+              href={website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-gray-900 underline"
+            >
+              Visit website
+            </a>
+          )}
+          <ShareButton
+            variant="pill"
+            title={`Happy Hour at ${venueName} – DealTown`}
+            text={`Happy Hour: ${hh.title ?? "Great specials"} at ${venueName}`}
+            entityType="happy_hour"
+            entityId={hh.id}
+          />
         </div>
-      )}
+      </div>
     </article>
   );
 }
