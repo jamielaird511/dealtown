@@ -43,9 +43,25 @@ export default function NewHappyHourPage() {
   });
 
   useEffect(() => {
-    fetch("/api/venues")
-      .then((r) => r.json())
-      .then((v) => setVenues(v.data || []));
+    const fetchVenues = async () => {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      
+      const { data, error } = await supabase
+        .from('venues')
+        .select('id, name')
+        .eq('active', true)
+        .order('name', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching venues:', error);
+        return;
+      }
+      
+      setVenues(data || []);
+    };
+    
+    fetchVenues();
   }, []);
 
   async function onSubmit(e: React.FormEvent) {

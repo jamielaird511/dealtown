@@ -1,9 +1,7 @@
 // src/app/admin/deals/page.tsx
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { moneyFromCents } from "@/lib/money";
-import { ActiveToggle } from "@/components/ActiveToggle";
-import { DeleteButton } from "@/components/DeleteButton";
+import DealsTable from "./DealsTable";
 
 // Force dynamic rendering - never cache admin pages
 export const dynamic = "force-dynamic";
@@ -60,78 +58,7 @@ export default async function AdminDealsPage() {
         </div>
       )}
 
-      {/* Mobile: Cards, Desktop: Table */}
-      <div className="space-y-3 md:space-y-0">
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto rounded-xl border bg-white">
-          <table className="w-full border-collapse">
-            <thead className="bg-gray-50">
-              <tr className="border-b">
-                <th className="p-3 text-left text-sm font-medium">Active</th>
-                <th className="p-3 text-left text-sm font-medium">Title</th>
-                <th className="p-3 text-left text-sm font-medium">Venue</th>
-                <th className="p-3 text-left text-sm font-medium">Day</th>
-                <th className="p-3 text-left text-sm font-medium">Price</th>
-                <th className="p-3 text-left text-sm font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(deals ?? []).map((d) => (
-                <tr key={d.id} className="border-b hover:bg-gray-50">
-                  <td className="p-3">
-                    <ActiveToggle id={d.id} initial={d.is_active} />
-                  </td>
-                  <td className="p-3">{d.title}</td>
-                  <td className="p-3">
-                    <div className="text-sm">{(d as any).venue?.name}</div>
-                    <div className="text-xs text-gray-500">{(d as any).venue?.address}</div>
-                  </td>
-                  <td className="p-3 text-sm capitalize">{d.day_of_week}</td>
-                  <td className="p-3 text-sm">
-                    {d.price_cents ? `$${moneyFromCents(d.price_cents)}` : "—"}
-                  </td>
-                  <td className="p-3">
-                    <div className="flex gap-2">
-                      <Link href={`/admin/${d.id}`} className="text-sm text-blue-600 hover:underline">
-                        Edit
-                      </Link>
-                      <DeleteButton id={d.id} title={d.title} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div className="md:hidden space-y-3">
-          {(deals ?? []).map((d) => (
-            <div key={d.id} className="rounded-xl border bg-white p-4 space-y-2">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-semibold">{d.title}</h3>
-                  <p className="text-sm text-gray-600">{(d as any).venue?.name}</p>
-                  <p className="text-xs text-gray-500">{(d as any).venue?.address}</p>
-                </div>
-                {d.price_cents && (
-                  <span className="text-orange-600 font-semibold">${moneyFromCents(d.price_cents)}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <ActiveToggle id={d.id} initial={d.is_active} />
-                <span className="capitalize text-gray-600">{d.day_of_week}</span>
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Link href={`/admin/${d.id}`} className="text-sm text-blue-600 hover:underline">
-                  Edit
-                </Link>
-                <DeleteButton id={d.id} title={d.title} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <DealsTable deals={(deals ?? []) as any} />
 
       {!deals?.length && (
         <div className="rounded-xl border bg-white p-8 text-center text-gray-500">

@@ -1,27 +1,7 @@
 import Link from 'next/link';
 import { getSupabaseServerComponentClient } from '@/lib/supabaseClients';
+import LunchTable from './LunchTable';
 
-const DAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-
-function formatDays(arr?: number[] | null) {
-  if (!arr || arr.length === 0) return '—';
-  return [...arr].sort((a,b)=>a-b).map(i => DAY[i]).join(', ');
-}
-
-function to12h(hhmm?: string | null) {
-  if (!hhmm) return '';
-  const [h, m] = hhmm.slice(0,5).split(':').map(Number);
-  const ampm = h >= 12 ? 'pm' : 'am';
-  const h12 = h % 12 || 12;
-  return `${String(h12).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ampm}`;
-}
-function formatTimeRange(start?: string | null, end?: string | null) {
-  const s = to12h(start);
-  const e = to12h(end);
-  if (!s && !e) return '—';
-  if (s && e) return `${s} — ${e}`;
-  return s || e || '—';
-}
 
 export default async function AdminLunchPage() {
   const supabase = getSupabaseServerComponentClient();
@@ -56,92 +36,7 @@ export default async function AdminLunchPage() {
         </Link>
       </div>
 
-      <div className="mt-6 rounded-2xl border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-neutral-50 text-left text-neutral-500">
-            <tr>
-              <th className="py-3 pl-4 pr-2">Active</th>
-              <th className="py-3 px-2">Venue</th>
-              <th className="py-3 px-2">Days</th>
-              <th className="py-3 px-2">Time</th>
-              <th className="py-3 px-2">Price</th>
-              <th className="py-3 px-2">Details</th>
-              <th className="py-3 px-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-8 text-center text-neutral-500">
-                  No lunch menus yet.
-                </td>
-              </tr>
-            ) : (
-              rows.map((row: any) => {
-                const days = formatDays(row.days);
-                const time = formatTimeRange(row.start_time, row.end_time);
-                return (
-                  <tr key={row.id} className="border-t align-top">
-                    <td className="py-4 pl-4 pr-2">
-                      {row.is_active ? (
-                        <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-2 py-1 text-xs font-medium">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-full bg-neutral-200 text-neutral-700 px-2 py-1 text-xs font-medium">
-                          Inactive
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="py-4 px-2">
-                      <div className="font-medium">{row.venue_name ?? '—'}</div>
-                      <div className="text-xs text-neutral-500">
-                        {row.venue_address || '—'}
-                      </div>
-                      {/* Optional: show title under venue, like HH shows offer lines */}
-                      {row.title && <div className="text-xs mt-1 opacity-80">{row.title}</div>}
-                    </td>
-
-                    <td className="py-4 px-2 whitespace-pre">{days}</td>
-                    <td className="py-4 px-2">{time}</td>
-                    <td className="py-4 px-2">
-                      {row.price_cents != null ? `$${(row.price_cents / 100).toFixed(2)}` : '—'}
-                    </td>
-                    <td className="py-4 px-2">
-                      {row.description ? (
-                        <div className="max-w-[34ch] whitespace-pre-line text-neutral-700">
-                          {row.description}
-                        </div>
-                      ) : '—'}
-                    </td>
-
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex justify-end gap-3">
-                        <Link href={`/admin/lunch/${row.id}/edit`} className="text-blue-600 hover:underline">
-                          Edit
-                        </Link>
-                        <form
-                          action={`/api/lunch/${row.id}`}
-                          method="post"
-                        >
-                          <input type="hidden" name="_method" value="DELETE" />
-                          <button 
-                            type="submit" 
-                            className="text-red-600 hover:underline"
-                          >
-                            Delete
-                          </button>
-                        </form>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <LunchTable rows={rows as any} />
     </div>
   );
 }

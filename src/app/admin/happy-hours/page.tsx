@@ -1,9 +1,8 @@
 import AdminHeader from "@/components/admin/AdminHeader";
-import { AdminTable } from "@/components/admin/AdminTable";
 import Link from "next/link";
 import { getSupabaseServerComponentClient } from "@/lib/supabaseClients";
 import { toggleHappyHourActive } from "./actions";
-import HappyHourRow from "./HappyHourRow";
+import HappyHoursTable from "./HappyHoursTable";
 import { unstable_noStore as noStore } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -108,31 +107,9 @@ export default async function HappyHoursPage({
         </div>
       )}
 
-      <AdminTable
-        head={
-          <tr>
-            <th className="px-4 py-3 font-medium">Active</th>
-            <th className="px-4 py-3 font-medium">Venue</th>
-            <th className="px-4 py-3 font-medium">Days</th>
-            <th className="px-4 py-3 font-medium">Time</th>
-            <th className="px-4 py-3 font-medium">Price</th>
-            <th className="px-4 py-3 font-medium">Details</th>
-            <th className="px-4 py-3 font-medium">Actions</th>
-          </tr>
-        }
-      >
-        {rows.length === 0 ? (
-          <tr>
-            <td className="px-4 py-6 text-gray-500" colSpan={7}>
-              {errorBanner ? "There was a problem loading happy hours." : "No happy hours yet."}
-            </td>
-          </tr>
-        ) : (
-          rows.map((h: any) => (
-            <HappyHourRow key={h.id} hh={h} />
-          ))
-        )}
-      </AdminTable>
+      <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
+        <HappyHoursTable rows={rows} />
+      </div>
     </section>
   );
 }
