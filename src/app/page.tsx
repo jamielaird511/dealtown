@@ -91,6 +91,22 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      
+      {/* Hero navigation section with crawlable links */}
+      <div className="mx-auto max-w-4xl px-6 py-8">
+        <nav className="flex items-center justify-center gap-4" aria-label="Main navigation">
+          <a href="/happy-hour" className="px-4 py-2 rounded-full bg-white text-gray-800 border border-gray-300 hover:bg-gray-50 transition">
+            Happy Hour
+          </a>
+          <a href="/lunch" className="px-4 py-2 rounded-full bg-white text-gray-800 border border-gray-300 hover:bg-gray-50 transition">
+            Lunch Specials
+          </a>
+          <a href="/deals" className="px-4 py-2 rounded-full bg-white text-gray-800 border border-gray-300 hover:bg-gray-50 transition">
+            Daily Deals
+          </a>
+        </nav>
+      </div>
+      
       <DealsClient items={items} />
     </>
   );
