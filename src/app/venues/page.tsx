@@ -4,6 +4,9 @@ import { fetchVenues } from "@/lib/data";
 export const metadata = {
   title: "Queenstown Venues | DealTown",
   description: "Browse all Queenstown venues offering deals, lunch specials, and happy hour promotions.",
+  alternates: {
+    canonical: "/venues",
+  },
 };
 
 // Opt-out of static rendering & caching

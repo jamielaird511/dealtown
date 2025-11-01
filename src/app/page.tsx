@@ -5,6 +5,9 @@ import { collectionJsonLd } from '@/lib/ld';
 export const metadata = {
   title: "Find a Deal. Share a Deal. | DealTown Queenstown",
   description: "Browse today's best deals across Queenstown — happy hour, lunch specials, daily offers, and more.",
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export const revalidate = 60;

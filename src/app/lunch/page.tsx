@@ -5,6 +5,9 @@ import { collectionJsonLd } from '@/lib/ld';
 export const metadata = {
   title: "Best Lunch Specials in Queenstown | DealTown",
   description: "Find affordable lunch specials and set menus across Queenstown.",
+  alternates: {
+    canonical: "/lunch",
+  },
 };
 
 export const revalidate = 60;

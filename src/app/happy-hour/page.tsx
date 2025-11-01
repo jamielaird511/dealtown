@@ -5,6 +5,9 @@ import { collectionJsonLd } from '@/lib/ld';
 export const metadata = {
   title: "Queenstown Happy Hour Specials | DealTown",
   description: "All happy hours in Queenstown with times, venues, and today's offers.",
+  alternates: {
+    canonical: "/happy-hour",
+  },
 };
 
 export const revalidate = 60;

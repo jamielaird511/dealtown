@@ -5,10 +5,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const routes = [
     "", // home
-    "/queenstown",
-    "/queenstown/happy-hour",
-    "/queenstown/lunch",
-    "/queenstown/daily-deals",
+    "/happy-hour",
+    "/lunch",
+    "/deals",
   ];
   return routes.map((path) => ({
     url: `${base}${path}`,

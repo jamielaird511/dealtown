@@ -13,6 +13,13 @@ export const metadata: Metadata = {
   title: "DealTown | Queenstown Deals & Specials",
   description: "Your local guide to happy hours, lunch specials, daily deals, and fuel prices in Queenstown.",
   metadataBase: new URL("https://dealtown.co.nz"),
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: "/",
+  },
   icons: {
     icon: "/favicon.ico",
   },

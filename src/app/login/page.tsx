@@ -2,6 +2,9 @@
 export const metadata = {
   title: "Sign In | DealTown Queenstown",
   description: "Sign in to access DealTown admin features and manage deals.",
+  alternates: {
+    canonical: "/login",
+  },
 };
 
 export default function Login() {

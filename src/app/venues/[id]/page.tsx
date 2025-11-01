@@ -30,6 +30,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: "Venue Not Found | DealTown Queenstown",
       description: "The requested venue could not be found.",
+      alternates: {
+        canonical: `/venues/${id}`,
+      },
     };
   }
   
@@ -39,6 +42,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    alternates: {
+      canonical: `/venues/${id}`,
+    },
     openGraph: { title, description },
     twitter: { title, description },
   };

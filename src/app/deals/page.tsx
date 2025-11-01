@@ -4,6 +4,9 @@ import DealsClient from './DealsClient';
 export const metadata = {
   title: "Queenstown Daily Deals | DealTown",
   description: "Today's best Queenstown deals from local venues — updated frequently.",
+  alternates: {
+    canonical: "/deals",
+  },
 };
 
 export const revalidate = 60;
