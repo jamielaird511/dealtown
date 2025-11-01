@@ -1,6 +1,11 @@
 import { getSupabaseServerComponentClient } from '@/lib/supabaseClients';
 import DealsClient from './DealsClient';
 
+export const metadata = {
+  title: "Queenstown Daily Deals | DealTown",
+  description: "Today's best Queenstown deals from local venues — updated frequently.",
+};
+
 export const revalidate = 60;
 
 export default async function DealsPage() {
@@ -26,4 +31,5 @@ export default async function DealsPage() {
 
   return <DealsClient items={items} />;
 }
+
 

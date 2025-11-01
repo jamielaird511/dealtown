@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { fetchVenue, fetchVenueDeals } from "@/lib/data";
 import { moneyFromCents } from "@/lib/money";
+import { Metadata } from "next";
 
 // Opt-out of static rendering & caching
 export const dynamic = "force-dynamic";
@@ -20,6 +21,28 @@ const mapDay = (d: string) =>
       sun: "sunday",
     }) as any
   )[d] ?? d;
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const id = Number(params.id);
+  const venue = await fetchVenue(id);
+  
+  if (!venue) {
+    return {
+      title: "Venue Not Found | DealTown Queenstown",
+      description: "The requested venue could not be found.",
+    };
+  }
+  
+  const title = `${venue.name} — Happy Hour & Deals | DealTown Queenstown`;
+  const description = `See ${venue.name}'s happy hour times, specials, and current deals in Queenstown.`;
+  
+  return {
+    title,
+    description,
+    openGraph: { title, description },
+    twitter: { title, description },
+  };
+}
 
 export default async function VenuePage({ params, searchParams }: Props) {
   const id = Number(params.id);

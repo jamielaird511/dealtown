@@ -1,5 +1,11 @@
 import { getSupabaseServerComponentClient } from '@/lib/supabaseClients';
 import LunchClient from './LunchClient';
+import { collectionJsonLd } from '@/lib/ld';
+
+export const metadata = {
+  title: "Best Lunch Specials in Queenstown | DealTown",
+  description: "Find affordable lunch specials and set menus across Queenstown.",
+};
 
 export const revalidate = 60;
 
@@ -67,5 +73,20 @@ export default async function LunchPage() {
     return (a.venueName ?? '').localeCompare(b.venueName ?? '');
   });
 
-  return <LunchClient items={items} />;
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dealtown.nz";
+  const jsonLd = collectionJsonLd({
+    name: "Lunch Specials – DealTown",
+    url: `${base}/lunch`,
+    description: "Live list of Queenstown lunch specials.",
+  });
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <LunchClient items={items} />
+    </>
+  );
 }

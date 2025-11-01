@@ -1,9 +1,11 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import DayTabs, { Sel, todayIndex } from '@/components/ui/DayTabs';
 import Section from '@/components/ui/Section';
 import DealCard from '@/components/ui/DealCard';
 import { renderTimeRange } from '@/lib/time';
+import { observeImpressions } from '@/lib/client/impression';
+import { logEvent } from '@/lib/analytics';
 
 type Item = {
   id: string;
@@ -35,6 +37,22 @@ export default function HappyHourClient({ items }: { items: Item[] }) {
       });
   }, [items, activeDay]);
 
+  // Track impressions when cards come into view
+  useEffect(() => {
+    if (filtered.length > 0) {
+      observeImpressions('[data-id]', (id) => {
+        logEvent({
+          type: "impression",
+          category: "engagement",
+          action: "impression",
+          label: "happy_hour_card",
+          entity_type: "happy_hour",
+          entity_id: id
+        });
+      });
+    }
+  }, [filtered]);
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <DayTabs sel={sel} onChange={setSel} />
@@ -46,6 +64,7 @@ export default function HappyHourClient({ items }: { items: Item[] }) {
             {filtered.map((hh) => (
               <DealCard
                 key={hh.id}
+                id={hh.id}
                 venueName={hh.venueName}
                 addressLine={hh.addressLine}
                 venueId={hh.venue_id}

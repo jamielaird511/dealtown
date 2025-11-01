@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { fetchVenues } from "@/lib/data";
 
+export const metadata = {
+  title: "Queenstown Venues | DealTown",
+  description: "Browse all Queenstown venues offering deals, lunch specials, and happy hour promotions.",
+};
+
 // Opt-out of static rendering & caching
 export const dynamic = "force-dynamic";
 

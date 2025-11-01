@@ -1,4 +1,9 @@
 // src/app/login/page.tsx
+export const metadata = {
+  title: "Sign In | DealTown Queenstown",
+  description: "Sign in to access DealTown admin features and manage deals.",
+};
+
 export default function Login() {
   return (
     <main className="mx-auto max-w-md p-6">

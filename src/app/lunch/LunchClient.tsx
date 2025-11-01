@@ -1,9 +1,11 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import DayTabs, { Sel, todayIndex } from '@/components/ui/DayTabs';
 import Section from '@/components/ui/Section';
 import DealCard from '@/components/ui/DealCard';
 import { renderTimeRange } from '@/lib/time';
+import { observeImpressions } from '@/lib/client/impression';
+import { logEvent } from '@/lib/analytics';
 
 const hhmm = (t?: string | null) => (t ? t.slice(0,5) : '');
 const timeRange = (s?: string|null, e?: string|null) => {
@@ -37,6 +39,22 @@ export default function LunchClient({ items }: { items: Item[] }) {
                  })
   , [items, activeDay]);
 
+  // Track impressions when cards come into view
+  useEffect(() => {
+    if (filtered.length > 0) {
+      observeImpressions('[data-id]', (id) => {
+        logEvent({
+          type: "impression",
+          category: "engagement",
+          action: "impression",
+          label: "lunch_card",
+          entity_type: "lunch",
+          entity_id: id
+        });
+      });
+    }
+  }, [filtered]);
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <DayTabs sel={sel} onChange={setSel} />
@@ -54,6 +72,7 @@ export default function LunchClient({ items }: { items: Item[] }) {
               return (
                 <DealCard
                   key={d.id}
+                  id={d.id}
                   venueName={d.venueName}
                   addressLine={d.addressLine}
                   venueId={d.venue_id}

@@ -1,5 +1,11 @@
 import { getSupabaseServerComponentClient } from '@/lib/supabaseClients';
 import DealsClient from './deals/DealsClient';
+import { collectionJsonLd } from '@/lib/ld';
+
+export const metadata = {
+  title: "Find a Deal. Share a Deal. | DealTown Queenstown",
+  description: "Browse today's best deals across Queenstown — happy hour, lunch specials, daily offers, and more.",
+};
 
 export const revalidate = 60;
 
@@ -69,5 +75,20 @@ export default async function HomePage() {
     } : null,
   }));
 
-  return <DealsClient items={items} />;
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dealtown.nz";
+  const jsonLd = collectionJsonLd({
+    name: "Daily Deals – DealTown",
+    url: base,
+    description: "Live list of Queenstown daily deals.",
+  });
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <DealsClient items={items} />
+    </>
+  );
 }

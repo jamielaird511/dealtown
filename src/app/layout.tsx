@@ -10,21 +10,19 @@ import PageviewBeacon from "@/components/analytics/PageviewBeacon";
 const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'DealTown — Queenstown deals',
-  description: 'All the best local deals in one place. Find a deal. Share a deal.',
+  title: "DealTown | Queenstown Deals & Specials",
+  description: "Your local guide to happy hours, lunch specials, daily deals, and fuel prices in Queenstown.",
+  metadataBase: new URL("https://dealtown.co.nz"),
   icons: {
     icon: "/favicon.ico",
   },
   openGraph: {
-    title: 'DealTown — Queenstown deals',
-    description: 'Find a deal. Share a deal.',
-    type: 'website',
-    siteName: 'DealTown',
+    siteName: "DealTown",
+    type: "website",
+    locale: "en_NZ",
   },
   twitter: {
-    card: 'summary_large_image',
-    title: 'DealTown — Queenstown deals',
-    description: 'Find a deal. Share a deal.',
+    card: "summary_large_image",
   },
 };
 

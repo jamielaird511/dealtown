@@ -1,3 +1,8 @@
+export const metadata = {
+  title: "Privacy Policy | DealTown Queenstown",
+  description: "Privacy policy for DealTown Queenstown - how we collect and protect your personal information.",
+};
+
 export default function PrivacyPage() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-12 text-gray-700">

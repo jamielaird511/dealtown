@@ -1,5 +1,11 @@
 import { getSupabaseServerComponentClient } from '@/lib/supabaseClients';
 import HappyHourClient from './HappyHourClient';
+import { collectionJsonLd } from '@/lib/ld';
+
+export const metadata = {
+  title: "Queenstown Happy Hour Specials | DealTown",
+  description: "All happy hours in Queenstown with times, venues, and today's offers.",
+};
 
 export const revalidate = 60;
 
@@ -66,5 +72,20 @@ export default async function HappyHourPage() {
     venueWebsite: row.venue?.website_url ?? null,
   }));
 
-  return <HappyHourClient items={items} />;
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dealtown.nz";
+  const jsonLd = collectionJsonLd({
+    name: "Happy Hour – DealTown",
+    url: `${base}/happy-hour`,
+    description: "Live list of Queenstown happy hour specials.",
+  });
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <HappyHourClient items={items} />
+    </>
+  );
 }

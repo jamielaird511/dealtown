@@ -1,3 +1,8 @@
+export const metadata = {
+  title: "Terms of Service | DealTown Queenstown",
+  description: "Terms of service for DealTown Queenstown - a community platform for sharing local deals and fuel prices.",
+};
+
 export default function TermsPage() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-12 text-gray-700">
