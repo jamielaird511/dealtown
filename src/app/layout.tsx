@@ -37,6 +37,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.variable}>
       <head>
+        {/* Favicons */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+        <link rel="manifest" href="/site.webmanifest" />
+
+        {/* Open Graph / Twitter for clean shares */}
+        <meta property="og:site_name" content="DealTown" />
+        <meta property="og:title" content="DealTown — Queenstown deals" />
+        <meta property="og:description" content="All the best local deals in one place. Find a deal. Share a deal." />
+        <meta property="og:url" content="https://dealtown.co.nz/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://dealtown.co.nz/icons/og-1200x630.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
