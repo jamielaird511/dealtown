@@ -26,36 +26,45 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { error } = await supabase.from("click_events").insert({
-      // core types
-      type: payload?.type ?? "address",
-      category: payload?.category ?? null,
-      action: payload?.action ?? null,
-      label: payload?.label ?? null,
-      value: payload?.value ?? null,
+    try {
+      const { error } = await supabase.from("click_events").insert({
+        // core types
+        type: payload?.type ?? "address",
+        category: payload?.category ?? null,
+        action: payload?.action ?? null,
+        label: payload?.label ?? null,
+        value: payload?.value ?? null,
 
-      // context
-      session_id: payload?.session_id ?? null,
-      path: payload?.path ?? null,
-      entity_type: payload?.entity_type ?? null,
-      entity_id: payload?.entity_id ?? null,
-      venue_id: payload?.venue_id ?? null,
-      method: payload?.method ?? null,
-      target_url: payload?.target_url ?? null,
-      context: payload?.context ?? null,
+        // context
+        session_id: payload?.session_id ?? null,
+        path: payload?.path ?? null,
+        entity_type: payload?.entity_type ?? null,
+        entity_id: payload?.entity_id ?? null,
+        venue_id: payload?.venue_id ?? null,
+        method: payload?.method ?? null,
+        target_url: payload?.target_url ?? null,
+        context: payload?.context ?? null,
 
-      // geo
-      country, city, region,
+        // geo
+        country, city, region,
 
-      // request metadata
-      user_agent: h.get("user-agent"),
-      referer: h.get("referer"),
-      ip: h.get("x-forwarded-for"),
-    });
+        // request metadata
+        user_agent: h.get("user-agent"),
+        referer: h.get("referer"),
+        ip: h.get("x-forwarded-for"),
+      });
 
-    if (error) {
-      console.error("[track-click] insert error →", error);
-      return NextResponse.json({ ok: false, error: error.message }, { status: 200 });
+      if (error) {
+        // Ignore duplicate key violations from unique index
+        if (error.code !== "23505") {
+          console.error("[track-click] insert error →", error);
+        }
+      }
+    } catch (err: any) {
+      // Ignore duplicate key violations from unique index
+      if (err?.code !== "23505") {
+        console.error("[track-click] insert error", err);
+      }
     }
 
     return NextResponse.json({ ok: true });
