@@ -3,10 +3,26 @@ import DealsClient from './deals/DealsClient';
 import { collectionJsonLd } from '@/lib/ld';
 
 export const metadata = {
-  title: "Find a Deal. Share a Deal. | DealTown Queenstown",
-  description: "Browse today's best deals across Queenstown — happy hour, lunch specials, daily offers, and more.",
+  title: "DealTown — Queenstown Deals, Happy Hours & Lunch Specials",
+  description: "Discover Queenstown's best daily deals, lunch specials, and happy hours — all in one place. DealTown keeps locals and visitors up to date with the latest offers.",
   alternates: {
     canonical: "/",
+  },
+  openGraph: {
+    title: "DealTown — Queenstown Deals, Happy Hours & Lunch Specials",
+    description: "Find and share Queenstown's best local deals. Fast, free, and always current.",
+    url: "https://dealtown.co.nz",
+    siteName: "DealTown",
+    images: [
+      {
+        url: "https://dealtown.co.nz/icon.png",
+        width: 512,
+        height: 512,
+        alt: "DealTown logo",
+      },
+    ],
+    locale: "en_NZ",
+    type: "website",
   },
 };
 

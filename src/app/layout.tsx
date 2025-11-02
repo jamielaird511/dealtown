@@ -36,6 +36,24 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "DealTown",
+              "url": "https://dealtown.co.nz",
+              "logo": "https://dealtown.co.nz/favicon.ico",
+              "sameAs": [
+                "https://www.facebook.com/dealtown.co.nz",
+                "https://www.instagram.com/dealtown.co.nz"
+              ]
+            }),
+          }}
+        />
+      </head>
       <body className="antialiased text-slate-800 min-h-screen flex flex-col">
         <PageviewBeacon />
         <DealTownHeader />
