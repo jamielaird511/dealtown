@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.ico",
+    apple: "/icons/apple-touch-icon.png",
   },
   openGraph: {
     siteName: "DealTown",
@@ -67,9 +68,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   url: 'https://dealtown.co.nz/',
                   logo: {
                     '@type': 'ImageObject',
-                    url: 'https://dealtown.co.nz/icons/web-app-manifest-512x512.png',
-                    width: 512,
-                    height: 512
+                    url: 'https://dealtown.co.nz/icons/apple-touch-icon.png',
+                    width: 180,
+                    height: 180
                   },
                   sameAs: [
                     // add if/when you create them:
