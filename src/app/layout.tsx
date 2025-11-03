@@ -53,20 +53,44 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta property="og:image" content="https://dealtown.co.nz/icons/og-1200x630.png" />
         <meta name="twitter:card" content="summary_large_image" />
 
+        {/* Organization + WebSite markup for Google logo/brand features */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              "name": "DealTown",
-              "url": "https://dealtown.co.nz",
-              "logo": "https://dealtown.co.nz/favicon.ico",
-              "sameAs": [
-                "https://www.facebook.com/dealtown.co.nz",
-                "https://www.instagram.com/dealtown.co.nz"
+              '@context': 'https://schema.org',
+              '@graph': [
+                {
+                  '@type': 'Organization',
+                  '@id': 'https://dealtown.co.nz/#org',
+                  name: 'DealTown',
+                  url: 'https://dealtown.co.nz/',
+                  logo: {
+                    '@type': 'ImageObject',
+                    url: 'https://dealtown.co.nz/icons/web-app-manifest-512x512.png',
+                    width: 512,
+                    height: 512
+                  },
+                  sameAs: [
+                    // add if/when you create them:
+                    // 'https://www.facebook.com/DealTownNZ',
+                    // 'https://www.instagram.com/dealtown_nz'
+                  ]
+                },
+                {
+                  '@type': 'WebSite',
+                  '@id': 'https://dealtown.co.nz/#website',
+                  url: 'https://dealtown.co.nz/',
+                  name: 'DealTown',
+                  publisher: { '@id': 'https://dealtown.co.nz/#org' },
+                  potentialAction: {
+                    '@type': 'SearchAction',
+                    target: 'https://dealtown.co.nz/?q={search_term_string}',
+                    'query-input': 'required name=search_term_string'
+                  }
+                }
               ]
-            }),
+            })
           }}
         />
       </head>
