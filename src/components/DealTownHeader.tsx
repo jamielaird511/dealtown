@@ -3,12 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CreditCard } from "lucide-react";
 import HeaderMenu from "@/components/HeaderMenu";
 import SubmitDealModal from "@/components/SubmitDealModal";
 import RegionSwitcher from "@/components/RegionSwitcher";
+import DealMeModal from "@/components/deal-me/DealMeModal";
 
 export default function DealTownHeader() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [dealMeOpen, setDealMeOpen] = useState(false);
   const pathname = usePathname();
   // pathname like "/", "/queenstown", "/queenstown/deal/123"
   const parts = pathname.split("/").filter(Boolean);
@@ -38,6 +41,14 @@ export default function DealTownHeader() {
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <button
               type="button"
+              onClick={() => setDealMeOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-orange-400/50 transition hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50"
+            >
+              <CreditCard className="w-4 h-4" />
+              Deal me
+            </button>
+            <button
+              type="button"
               onClick={() => setModalOpen(true)}
               className="inline-flex items-center rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-orange-400/50 transition hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50"
             >
@@ -52,6 +63,11 @@ export default function DealTownHeader() {
       <SubmitDealModal 
         open={modalOpen} 
         onClose={() => setModalOpen(false)} 
+      />
+      <DealMeModal
+        open={dealMeOpen}
+        onClose={() => setDealMeOpen(false)}
+        currentRegion={currentRegion}
       />
     </>
   );
