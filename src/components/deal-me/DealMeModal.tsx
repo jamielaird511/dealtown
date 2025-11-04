@@ -105,6 +105,7 @@ export default function DealMeModal({
   const [allLunch, setAllLunch] = useState<LunchItem[]>([]);
   const [allHappyHours, setAllHappyHours] = useState<HappyHourItem[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [radius, setRadius] = useState(5000); // 5km default
   const [when, setWhen] = useState<"now" | "next" | "today">("now");
   const hasLoaded = useRef(false);
@@ -114,13 +115,18 @@ export default function DealMeModal({
     if (!open) {
       hasLoaded.current = false;
       setUserLocation(null); // Reset location on close
+      setLocationError(null); // Reset error on close
     }
   }, [open]);
 
   // Get user location when modal opens
   useEffect(() => {
     if (!open) return;
-    if (!("geolocation" in navigator)) return;
+    if (typeof window === "undefined") return;
+    if (!("geolocation" in navigator)) {
+      setLocationError("Geolocation not available in this browser – showing all deals.");
+      return;
+    }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -128,9 +134,18 @@ export default function DealMeModal({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         });
+        setLocationError(null);
+        console.log("GEO OK", pos.coords);
       },
-      () => {
-        // User denied or error - fall back to region-only filtering
+      (err) => {
+        console.warn("GEO ERROR", err);
+        setLocationError((err && err.message) ? `${err.message} – showing all deals.` : "Could not get your location – showing all deals.");
+        setUserLocation(null);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 0,
       }
     );
   }, [open]);
@@ -475,71 +490,78 @@ export default function DealMeModal({
         <div className="overflow-y-auto flex-1 p-6 space-y-6">
           {loading ? (
             <div className="text-center py-12 text-gray-500">Loading deals...</div>
-          ) : showFallback ? (
-            <>
-              <div className="text-center py-4 text-gray-600">
-                No deals matched your filters (distance/time). Here are today's deals in {regionLabel}.
-              </div>
-              <section>
-                <h3 className="text-lg font-semibold mb-3">Daily Deals</h3>
-                {allDeals.length === 0 ? (
-                  <p className="text-gray-500 text-sm">No deals available.</p>
-                ) : (
-                  <ul className="space-y-3">
-                    {allDeals.map((deal) => {
-                      // For fallback, calculate distance on the fly (venue may not have _distance yet)
-                      let distText: string | null = null;
-                      if (deal.venue?.lat && deal.venue?.lng && userLocation) {
-                        const dist = haversineMeters(userLocation, { lat: deal.venue.lat, lng: deal.venue.lng });
-                        if (dist < MAX_REASONABLE_DISTANCE) {
-                          distText = formatDistance(dist);
-                        }
-                      }
-                      return (
-                        <li
-                          key={deal.id}
-                          className="p-3 border rounded-lg hover:bg-gray-50"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="font-medium">{deal.venue.name}</div>
-                              <div className="text-sm text-gray-700 mt-1">
-                                {deal.title}
-                              </div>
-                              {deal.description && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {deal.description}
-                                </div>
-                              )}
-                              <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                                {deal.venue.address && (
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    {deal.venue.address}
-                                  </span>
-                                )}
-                                {distText && <span>{distText}</span>}
-                              </div>
-                            </div>
-                            {deal.price_cents && (
-                              <div className="ml-4 text-right">
-                                <div className="font-semibold text-orange-600">
-                                  ${(deal.price_cents / 100).toFixed(2)}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </section>
-            </>
           ) : (
             <>
-              {/* Daily Deals */}
-              {dailyDeals.length > 0 && (
+              {locationError && (
+                <p className="text-xs text-red-500 mb-2">
+                  {locationError}
+                </p>
+              )}
+              {showFallback ? (
+                <>
+                  <div className="text-center py-4 text-gray-600">
+                    No deals matched your filters (distance/time). Here are today's deals in {regionLabel}.
+                  </div>
+                  <section>
+                    <h3 className="text-lg font-semibold mb-3">Daily Deals</h3>
+                    {allDeals.length === 0 ? (
+                      <p className="text-gray-500 text-sm">No deals available.</p>
+                    ) : (
+                      <ul className="space-y-3">
+                        {allDeals.map((deal) => {
+                          // For fallback, calculate distance on the fly (venue may not have _distance yet)
+                          let distText: string | null = null;
+                          if (deal.venue?.lat && deal.venue?.lng && userLocation) {
+                            const dist = haversineMeters(userLocation, { lat: deal.venue.lat, lng: deal.venue.lng });
+                            if (dist < MAX_REASONABLE_DISTANCE) {
+                              distText = formatDistance(dist);
+                            }
+                          }
+                          return (
+                            <li
+                              key={deal.id}
+                              className="p-3 border rounded-lg hover:bg-gray-50"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium">{deal.venue.name}</div>
+                                  <div className="text-sm text-gray-700 mt-1">
+                                    {deal.title}
+                                  </div>
+                                  {deal.description && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {deal.description}
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                                    {deal.venue.address && (
+                                      <span className="flex items-center gap-1">
+                                        <MapPin className="w-3 h-3" />
+                                        {deal.venue.address}
+                                      </span>
+                                    )}
+                                    {distText && <span>{distText}</span>}
+                                  </div>
+                                </div>
+                                {deal.price_cents && (
+                                  <div className="ml-4 text-right">
+                                    <div className="font-semibold text-orange-600">
+                                      ${(deal.price_cents / 100).toFixed(2)}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </section>
+                </>
+              ) : (
+                <>
+                  {/* Daily Deals */}
+                  {dailyDeals.length > 0 && (
                 <section>
                   <h3 className="text-lg font-semibold mb-3">Daily Deals</h3>
                   <ul className="space-y-3">
@@ -711,10 +733,12 @@ export default function DealMeModal({
                 </section>
               )}
 
-              {!showFallback && dailyDeals.length === 0 && lunchDeals.length === 0 && happyHours.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
-                  No deals matched your criteria. Try adjusting your filters.
-                </div>
+                  {!showFallback && dailyDeals.length === 0 && lunchDeals.length === 0 && happyHours.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      No deals matched your criteria. Try adjusting your filters.
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
