@@ -1,7 +1,7 @@
 import { getSupabaseServerComponentClient } from "@/lib/supabaseClients";
 import DealsClient from "@/app/deals/DealsClient";
 
-const SUPPORTED_REGIONS = ["queenstown"];
+const SUPPORTED_REGIONS = ["queenstown", "wanaka", "dunedin"];
 
 export const revalidate = 60;
 
@@ -17,9 +17,21 @@ export default async function RegionPage({ params }: { params: { region: string 
     );
   }
 
+  // only queenstown is live right now
+  if (region !== "queenstown") {
+    const title = region.charAt(0).toUpperCase() + region.slice(1);
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-semibold mb-2">{title} coming soon</h1>
+        <p className="text-slate-600">
+          We're still loading deals for this area. Check back soon or switch to Queenstown.
+        </p>
+      </div>
+    );
+  }
+
   const supabase = getSupabaseServerComponentClient();
 
-  // TEMP: same query as current homepage; later we will filter by region
   const { data, error } = await supabase
     .from("deals")
     .select(`
@@ -28,10 +40,12 @@ export default async function RegionPage({ params }: { params: { region: string 
         id,
         name,
         address,
-        website_url
+        website_url,
+        region
       )
     `)
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .eq("region", region);
 
   if (error) {
     console.error("[region deals] fetch error", error);

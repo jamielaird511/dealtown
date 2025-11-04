@@ -28,6 +28,16 @@ export default async function NewDealPage({ searchParams }: { searchParams?: { e
 
       <form action="/api/admin/deals" method="post" className="space-y-4">
         <div>
+          <label className="block text-sm font-medium mb-1">Region *</label>
+          <select name="region" required className="w-full rounded border px-3 py-2">
+            <option value="">Select a region…</option>
+            <option value="queenstown">Queenstown</option>
+            <option value="wanaka">Wanaka</option>
+            <option value="dunedin">Dunedin</option>
+          </select>
+        </div>
+
+        <div>
           <label className="block text-sm font-medium mb-1">Venue *</label>
           <select name="venue_id" required className="w-full rounded border px-3 py-2">
             <option value="">Select a venue…</option>

@@ -17,6 +17,7 @@ export default async function NewVenuePage() {
       name: String(formData.get("name") ?? "").trim(),
       address: String(formData.get("address") ?? "").trim() || null,
       website_url: String(formData.get("website_url") ?? "").trim() || null,
+      region: String(formData.get("region") ?? "queenstown").toLowerCase().trim(),
     };
 
     const { error } = await supabase.from("venues").insert(payload);
@@ -76,6 +77,23 @@ export default async function NewVenuePage() {
             <p className="text-xs text-gray-500">
               Optional. Used for venue cards and as fallback for deals/happy hours.
             </p>
+          </div>
+
+          <div className="grid gap-2">
+            <label className="text-sm font-medium" htmlFor="region">
+              Region *
+            </label>
+            <select
+              id="region"
+              name="region"
+              required
+              defaultValue="queenstown"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            >
+              <option value="queenstown">Queenstown</option>
+              <option value="wanaka">Wanaka</option>
+              <option value="dunedin">Dunedin</option>
+            </select>
           </div>
 
           <div className="flex gap-3">

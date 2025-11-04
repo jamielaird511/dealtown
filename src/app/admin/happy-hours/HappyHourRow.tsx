@@ -27,6 +27,7 @@ type HH = {
   active: boolean;
   venue: string;
   address: string;
+  region: string | null;
   days: unknown; // can be string[], number[], or mixed
   start: string | null;
   end: string | null;
@@ -44,6 +45,16 @@ export default function HappyHourRow({ hh }: { hh: HH }) {
       <td className="px-4 py-3">
         <div className="font-medium">{hh.venue}</div>
         {hh.address ? <div className="text-xs text-gray-500">{hh.address}</div> : null}
+      </td>
+
+      <td className="px-4 py-3">
+        {hh.region ? (
+          <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium capitalize text-slate-700">
+            {hh.region}
+          </span>
+        ) : (
+          <span className="text-slate-400 text-xs">—</span>
+        )}
       </td>
 
       <td className="px-4 py-3">

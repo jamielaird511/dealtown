@@ -2,12 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { usePathname } from "next/navigation";
 import HeaderMenu from "@/components/HeaderMenu";
 import SubmitDealModal from "@/components/SubmitDealModal";
+import RegionSwitcher from "@/components/RegionSwitcher";
 
 export default function DealTownHeader() {
   const [modalOpen, setModalOpen] = useState(false);
+  const pathname = usePathname();
+  // pathname like "/", "/queenstown", "/queenstown/deal/123"
+  const parts = pathname.split("/").filter(Boolean);
+  const currentRegion = parts[0] ?? "queenstown";
 
   return (
     <>
@@ -19,13 +24,7 @@ export default function DealTownHeader() {
                 DealTown
               </Link>
             </h1>
-            <span
-              aria-label="Current city: Queenstown"
-              className="ml-2 inline-flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1 text-xs font-semibold text-white shadow-sm ring-1 ring-orange-400/50 hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 transition sm:text-sm"
-            >
-              <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
-              Queenstown
-            </span>
+            <RegionSwitcher current={currentRegion} />
           </div>
           <p className="text-sm text-muted-foreground">
             All the best local deals in one place.

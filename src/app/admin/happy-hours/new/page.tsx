@@ -7,6 +7,12 @@ import Link from "next/link";
 
 type Venue = { id: number; name: string };
 
+const REGIONS = [
+  { value: "queenstown", label: "Queenstown" },
+  { value: "wanaka", label: "Wanaka" },
+  { value: "dunedin", label: "Dunedin" },
+];
+
 // Normalize time from "04:00 pm" or "16:00" to "HH:mm"
 function normalizeTime(t: string) {
   if (!t) return t;
@@ -26,6 +32,7 @@ function normalizeTime(t: string) {
 
 export default function NewHappyHourPage() {
   const router = useRouter();
+  const [region, setRegion] = useState("queenstown");
   const [venues, setVenues] = useState<Venue[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [flash, setFlash] = useState<null | { type: "success" | "error"; msg: string }>(null);
@@ -51,6 +58,7 @@ export default function NewHappyHourPage() {
         .from('venues')
         .select('id, name')
         .eq('active', true)
+        .eq('region', region)
         .order('name', { ascending: true });
       
       if (error) {
@@ -59,10 +67,12 @@ export default function NewHappyHourPage() {
       }
       
       setVenues(data || []);
+      // Reset venue selection when region changes
+      setForm((prev: any) => ({ ...prev, venue_id: 0 }));
     };
     
     fetchVenues();
-  }, []);
+  }, [region]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -139,18 +149,39 @@ export default function NewHappyHourPage() {
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="flex flex-col">
+              <span className="text-sm font-medium mb-1">Region</span>
+              <select
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                className="border rounded px-3 py-2"
+              >
+                {REGIONS.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col">
               <span className="text-sm font-medium mb-1">Venue *</span>
               <select
                 value={form.venue_id}
                 onChange={(e) => setForm((f: any) => ({ ...f, venue_id: Number(e.target.value) }))}
                 className="border rounded px-3 py-2"
+                required
               >
                 <option value={0}>Select a venue…</option>
-                {venues.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
+                {venues.length === 0 ? (
+                  <option disabled value={0}>
+                    No venues in this region yet
                   </option>
-                ))}
+                ) : (
+                  venues.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))
+                )}
               </select>
             </label>
             <label className="flex flex-col">

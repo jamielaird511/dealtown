@@ -37,6 +37,13 @@ export async function POST(req: Request) {
   const price_cents = toCents(priceRaw);
   const notesRaw = form.get("notes") as string | null;
   const cleanNotes = (notesRaw ?? "").toString().trim() || null;
+  const region = String(form.get("region") || "").toLowerCase().trim();
+
+  if (!region) {
+    const url = new URL("/admin/new", req.url);
+    url.searchParams.set("error", "region is required");
+    return NextResponse.redirect(url, { status: 303 });
+  }
 
   const venue_id = Number(form.get("venue_id"));
   if (!venue_id || Number.isNaN(venue_id)) {
@@ -51,7 +58,7 @@ export async function POST(req: Request) {
 
   const { error } = await supabase
     .from("deals")
-    .insert([{ title, day_of_week, is_active, price_cents, notes: cleanNotes, venue_id }]);
+    .insert([{ title, day_of_week, is_active, price_cents, notes: cleanNotes, venue_id, region }]);
 
   if (error) {
     const url = new URL("/admin/new", req.url);
@@ -70,6 +77,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   const day = url.searchParams.get("day");
+  const region = url.searchParams.get("region");
   const limit = Number(url.searchParams.get("limit")) || 50;
   const offset = Number(url.searchParams.get("offset")) || 0;
 
@@ -103,6 +111,7 @@ export async function GET(req: Request) {
     .range(offset, offset + limit - 1);
 
   if (day) query = query.eq("day_of_week", day);
+  if (region) query = query.eq("region", region.toLowerCase());
 
   const { data, error, count } = await query;
   if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 });
