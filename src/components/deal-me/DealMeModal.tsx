@@ -207,6 +207,7 @@ export default function DealMeModal({
             start_time: d.start_time,
             end_time: d.end_time,
             days: null, // deals.day_of_week is string or number, not array
+            day_of_week: d.day_of_week, // Preserve for day filtering
           }));
 
         const lunch = (lunchRes.data ?? [])
@@ -247,10 +248,97 @@ export default function DealMeModal({
     load();
   }, [open, currentRegion, supabase]);
 
+  // Helper functions for day/time filtering
+  const DAY_MAP: Record<string, number> = {
+    sun: 0, sunday: 0,
+    mon: 1, monday: 1,
+    tue: 2, tuesday: 2,
+    wed: 3, wednesday: 3,
+    thu: 4, thursday: 4,
+    fri: 5, friday: 5,
+    sat: 6, saturday: 6,
+  };
+
+  function dealMatchesToday(deal: any, todayDow: number) {
+    // support string day_of_week: "friday"
+    if (typeof deal?.day_of_week === "string") {
+      const d = deal.day_of_week.toLowerCase().trim();
+      const mapped = DAY_MAP[d];
+      if (typeof mapped === "number") {
+        return mapped === todayDow;
+      }
+    }
+
+    // support number day_of_week: 5
+    if (typeof deal?.day_of_week === "number") {
+      return deal.day_of_week === todayDow;
+    }
+
+    // support array of days: [1,2,3]
+    if (Array.isArray(deal?.days)) {
+      return deal.days.includes(todayDow);
+    }
+
+    // if no day info, keep it
+    return true;
+  }
+
+  function timeToMinutes(str: string): number | null {
+    if (!str) return null;
+    const parts = str.split(":");
+    if (parts.length < 2) return null;
+    const h = Number(parts[0]);
+    const m = Number(parts[1]);
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    return h * 60 + m;
+  }
+
+  function dealMatchesWhen(deal: any, when: "now" | "next" | "today", now: Date) {
+    // if deal has no time window, let it through
+    const startM = timeToMinutes(deal?.start_time);
+    const endM = timeToMinutes(deal?.end_time);
+    if (startM === null || endM === null) return true;
+
+    const currentM = now.getHours() * 60 + now.getMinutes();
+
+    if (when === "now") {
+      return currentM >= startM && currentM <= endM;
+    }
+
+    if (when === "next") {
+      // "Next Hour": anything starting within the next 60 min
+      return startM >= currentM && startM <= currentM + 60;
+    }
+
+    // "today": any deal that has a time window today
+    if (when === "today") {
+      return true;
+    }
+
+    return true;
+  }
+
   // Filter and group deals based on time, distance, and "when" filter
   const { dailyDeals, lunchDeals, happyHours, showFallback } = useMemo(() => {
-    // Calculate distances for all items if we have user location
-    const withDistancesDaily = allDeals.map((deal) => {
+    const now = new Date();
+    const todayDow = now.getDay();
+    const whenFilter = when;
+
+    // Filter by day/time FIRST, before distance calculations
+    const dayTimeFilteredDaily = allDeals.filter((deal) => {
+      return dealMatchesToday(deal, todayDow) && dealMatchesWhen(deal, whenFilter, now);
+    });
+
+    const dayTimeFilteredLunch = allLunch.filter((lunch) => {
+      return dealMatchesToday(lunch, todayDow) && dealMatchesWhen(lunch, whenFilter, now);
+    });
+
+    const dayTimeFilteredHappy = allHappyHours.filter((hh) => {
+      return dealMatchesToday(hh, todayDow) && dealMatchesWhen(hh, whenFilter, now);
+    });
+
+    // Calculate distances for day/time filtered items if we have user location
+    const withDistancesDaily = dayTimeFilteredDaily.map((deal) => {
       const v = deal.venue;
       if (userLocation && v?.lat && v?.lng) {
         const dist = haversineMeters(userLocation, { lat: v.lat, lng: v.lng });
@@ -259,7 +347,7 @@ export default function DealMeModal({
       return { ...deal, _distance: null };
     });
 
-    const withDistancesLunch = allLunch.map((lunch) => {
+    const withDistancesLunch = dayTimeFilteredLunch.map((lunch) => {
       const v = lunch.venue;
       if (userLocation && v?.lat && v?.lng) {
         const dist = haversineMeters(userLocation, { lat: v.lat, lng: v.lng });
@@ -268,7 +356,7 @@ export default function DealMeModal({
       return { ...lunch, _distance: null };
     });
 
-    const withDistancesHappy = allHappyHours.map((hh) => {
+    const withDistancesHappy = dayTimeFilteredHappy.map((hh) => {
       const v = hh.venue;
       if (userLocation && v?.lat && v?.lng) {
         const dist = haversineMeters(userLocation, { lat: v.lat, lng: v.lng });
@@ -300,95 +388,24 @@ export default function DealMeModal({
       filteredDaily = withDistancesDaily;
     }
 
-    // Lunch deals: filter by time rules first, then distance
-    let lunchFiltered: LunchItem[] = allLunch;
-    if (when === "now") {
-      lunchFiltered = allLunch.filter((l) => {
-        if (!isBefore2PM()) return false;
-        if (!includesToday(l.days)) return false;
-        if (l.start_time && l.end_time) {
-          return isTimeBetween(l.start_time, l.end_time);
-        }
-        return true; // No time restriction = valid
-      });
-    } else if (when === "next") {
-      // Next hour: show if starts within 60 minutes
-      lunchFiltered = allLunch.filter((l) => {
-        if (!isBefore2PM()) return false;
-        if (!includesToday(l.days)) return false;
-        if (l.start_time) {
-          return startsWithinMinutes(l.start_time, 60);
-        }
-        return false;
-      });
-    } else {
-      // Today: show if includes today and before 2pm
-      lunchFiltered = allLunch.filter((l) => {
-        if (!isBefore2PM()) return false;
-        return includesToday(l.days);
-      });
-    }
-
-    // Map to include distances and apply distance filter
-    let lunchWithDistances = lunchFiltered.map((lunch) => {
-      const v = lunch.venue;
-      if (userLocation && v?.lat && v?.lng) {
-        const dist = haversineMeters(userLocation, { lat: v.lat, lng: v.lng });
-        return { ...lunch, _distance: dist };
-      }
-      return { ...lunch, _distance: null };
-    });
-
+    // Lunch deals: apply distance filter to day/time filtered items
     let filteredLunch: LunchItem[] = [];
     if (shouldFilterByDistance) {
-      filteredLunch = lunchWithDistances.filter(
+      filteredLunch = withDistancesLunch.filter(
         (l) => l._distance == null || l._distance <= radius
       );
     } else {
-      filteredLunch = lunchWithDistances;
+      filteredLunch = withDistancesLunch;
     }
 
-    // Happy hours: filter by time rules first, then distance
-    let hhFiltered: HappyHourItem[] = allHappyHours;
-    if (when === "now") {
-      hhFiltered = allHappyHours.filter((h) => {
-        if (!includesToday(h.days)) return false;
-        if (h.start_time && h.end_time) {
-          return isTimeBetween(h.start_time, h.end_time) || startsWithinMinutes(h.start_time, 60);
-        }
-        return false;
-      });
-    } else if (when === "next") {
-      // Next hour: show if starts within 60 minutes
-      hhFiltered = allHappyHours.filter((h) => {
-        if (!includesToday(h.days)) return false;
-        if (h.start_time) {
-          return startsWithinMinutes(h.start_time, 60);
-        }
-        return false;
-      });
-    } else {
-      // Today: show if includes today (regardless of time)
-      hhFiltered = allHappyHours.filter((h) => includesToday(h.days));
-    }
-
-    // Map to include distances and apply distance filter
-    let hhWithDistances = hhFiltered.map((hh) => {
-      const v = hh.venue;
-      if (userLocation && v?.lat && v?.lng) {
-        const dist = haversineMeters(userLocation, { lat: v.lat, lng: v.lng });
-        return { ...hh, _distance: dist };
-      }
-      return { ...hh, _distance: null };
-    });
-
+    // Happy hours: apply distance filter to day/time filtered items
     let filteredHappy: HappyHourItem[] = [];
     if (shouldFilterByDistance) {
-      filteredHappy = hhWithDistances.filter(
+      filteredHappy = withDistancesHappy.filter(
         (h) => h._distance == null || h._distance <= radius
       );
     } else {
-      filteredHappy = hhWithDistances;
+      filteredHappy = withDistancesHappy;
     }
 
     // Check if nothing found after filtering
