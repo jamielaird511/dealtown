@@ -11,6 +11,7 @@ import {
   getCurrentZeroBasedWeekday,
   timeToMinutes,
 } from "@/lib/time";
+import { LocationInput } from "./LocationInput";
 
 const DISTANCE_OPTIONS = [
   { value: 1000, label: "1km" },
@@ -45,8 +46,11 @@ function formatDistance(meters: number) {
   if (meters < 500) return "<500 m away";
   if (meters < 1000) return "<1 km away";
   if (meters < 2000) return "<2 km away";
-  const km = (meters / 1000).toFixed(1);
-  return `> ${km} km away`;
+  
+  const km = meters / 1000;
+  if (km < 5) return "<5 km away";
+  if (km < 10) return "<10 km away";
+  return "10+ km away";
 }
 
 type Venue = {
@@ -112,6 +116,38 @@ export default function DealMeModal({
   const [radius, setRadius] = useState(5000); // 5km default
   const [when, setWhen] = useState<"now" | "next" | "today">("now");
   const hasLoaded = useRef(false);
+
+  // Handler for "Use my location" button
+  const handleUseMyLocation = () => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      setLocationError("Geolocation not available – try typing a location.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        setLocationError(null);
+      },
+      (err) => {
+        setLocationError(err?.message || "Could not get your location – try typing a location.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 0,
+      }
+    );
+  };
+
+  // Handler for location selected from Google Places
+  const handleLocationFromSearch = (loc: { lat: number; lng: number }) => {
+    setUserLocation(loc);
+    setLocationError(null);
+  };
 
   // Reset hasLoaded when modal closes so it can load again next time
   useEffect(() => {
@@ -467,41 +503,55 @@ export default function DealMeModal({
         </div>
 
         {/* Filters */}
-        <div className="p-4 border-b bg-gray-50 flex flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Within:</span>
-            <div className="flex gap-1">
-              {DISTANCE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setRadius(opt.value)}
-                  className={`px-3 py-1 text-sm rounded-md transition ${
-                    radius === opt.value
-                      ? "bg-orange-500 text-white"
-                      : "bg-white border hover:bg-gray-50"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+        <div className="p-4 border-b bg-gray-50">
+          <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Within:</span>
+                <div className="flex gap-1">
+                  {DISTANCE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setRadius(opt.value)}
+                      className={`px-3 py-1 text-sm rounded-md transition ${
+                        radius === opt.value
+                          ? "bg-orange-500 text-white"
+                          : "bg-white border hover:bg-gray-50"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">When:</span>
+                <div className="flex gap-1">
+                  {(["now", "next", "today"] as const).map((w) => (
+                    <button
+                      key={w}
+                      onClick={() => setWhen(w)}
+                      className={`px-3 py-1 text-sm rounded-md transition capitalize ${
+                        when === w
+                          ? "bg-orange-500 text-white"
+                          : "bg-white border hover:bg-gray-50"
+                      }`}
+                    >
+                      {w === "next" ? "Next hour" : w}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">When:</span>
-            <div className="flex gap-1">
-              {(["now", "next", "today"] as const).map((w) => (
-                <button
-                  key={w}
-                  onClick={() => setWhen(w)}
-                  className={`px-3 py-1 text-sm rounded-md transition capitalize ${
-                    when === w
-                      ? "bg-orange-500 text-white"
-                      : "bg-white border hover:bg-gray-50"
-                  }`}
-                >
-                  {w === "next" ? "Next hour" : w}
-                </button>
-              ))}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleUseMyLocation}
+                className="text-xs bg-orange-100 text-orange-600 px-3 py-1 rounded-full hover:bg-orange-200"
+              >
+                Use my location
+              </button>
+              <LocationInput onSelectLocation={handleLocationFromSearch} />
             </div>
           </div>
         </div>
@@ -754,9 +804,18 @@ export default function DealMeModal({
               )}
 
                   {!showFallback && dailyDeals.length === 0 && lunchDeals.length === 0 && happyHours.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                      No deals matched your criteria. Try adjusting your filters.
-                    </div>
+                    <>
+                      {!userLocation && (
+                        <div className="mb-3 rounded-lg bg-orange-50 border border-orange-200 px-3 py-2">
+                          <p className="text-xs text-orange-700">
+                            No nearby deals found. Your browser may have blocked location. Please allow location services and try again.
+                          </p>
+                        </div>
+                      )}
+                      <div className="text-center py-12 text-gray-500">
+                        No deals matched your criteria. Try adjusting your filters.
+                      </div>
+                    </>
                   )}
                 </>
               )}
