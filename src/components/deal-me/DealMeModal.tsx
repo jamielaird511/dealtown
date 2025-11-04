@@ -41,9 +41,12 @@ function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng:
 
 function formatDistance(meters: number) {
   if (!Number.isFinite(meters)) return null;
-  if (meters < 200) return `${Math.round(meters)} m away`;
-  if (meters < 1000) return `${Math.round(meters / 10) * 10} m away`;
-  return `${(meters / 1000).toFixed(1)} km away`;
+  if (meters < 250) return "<250 m away";
+  if (meters < 500) return "<500 m away";
+  if (meters < 1000) return "<1 km away";
+  if (meters < 2000) return "<2 km away";
+  const km = (meters / 1000).toFixed(1);
+  return `> ${km} km away`;
 }
 
 type Venue = {
