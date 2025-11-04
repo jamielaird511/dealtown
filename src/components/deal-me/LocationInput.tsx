@@ -38,7 +38,7 @@ export function LocationInput({ onSelectLocation }: LocationInputProps) {
       ref={inputRef}
       type="text"
       placeholder="Enter location"
-      className="text-xs border rounded-full px-3 py-1 w-40"
+      className="text-xs border rounded-full px-3 py-1 w-full max-w-[16rem] sm:max-w-[18rem] md:max-w-[20rem]"
     />
   );
 }
