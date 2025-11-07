@@ -1,40 +1,15 @@
 import { getSupabaseServerComponentClient } from "@/lib/supabaseClients";
 import DealsClient from "@/app/deals/DealsClient";
 
-const SUPPORTED_REGIONS = ["queenstown", "wanaka", "dunedin"];
-
 export const revalidate = 60;
 
-export default async function RegionPage({ params }: { params: { region: string } }) {
-  const region = params.region.toLowerCase();
-
-  if (!SUPPORTED_REGIONS.includes(region)) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-semibold mb-2">Region not found</h1>
-        <p className="text-slate-600">This region is not available yet.</p>
-      </div>
-    );
-  }
-
-  // only queenstown is live right now
-  if (region !== "queenstown") {
-    const title = region.charAt(0).toUpperCase() + region.slice(1);
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-semibold mb-2">{title} coming soon</h1>
-        <p className="text-slate-600">
-          We're still loading deals for this area. Check back soon or switch to Queenstown.
-        </p>
-      </div>
-    );
-  }
-
+export default async function QueenstownPage() {
   const supabase = getSupabaseServerComponentClient();
 
   const { data, error } = await supabase
     .from("deals")
-    .select(`
+    .select(
+      `
       *,
       venue:venues!deals_venue_fk(
         id,
@@ -43,15 +18,15 @@ export default async function RegionPage({ params }: { params: { region: string 
         website_url,
         region
       )
-    `)
+    `
+    )
     .eq("is_active", true)
-    .eq("region", region);
+    .eq("region", "queenstown");
 
   if (error) {
-    console.error("[region deals] fetch error", error);
+    console.error("[queenstown deals] fetch error", error);
   }
 
-  // map day names → numbers (0=Sun, 1=Mon, ...)
   const dayMap: Record<string, number> = {
     sun: 0, sunday: 0,
     mon: 1, monday: 1,
@@ -63,7 +38,7 @@ export default async function RegionPage({ params }: { params: { region: string 
   };
 
   const toDaysArray = (d: unknown): number[] | null => {
-    if (!d) return null; // null = every day
+    if (!d) return null;
     if (typeof d === "number") return [d >= 1 && d <= 7 ? d % 7 : d];
     if (typeof d === "string") {
       const key = d.trim().toLowerCase();
@@ -83,14 +58,16 @@ export default async function RegionPage({ params }: { params: { region: string 
     addressLine:
       row.venue_address ??
       ([row.venue?.address, row.venue?.suburb].filter(Boolean).join(", ") ||
-      null),
-    venue: row.venue ? {
-      id: row.venue_id,
-      name: row.venue.name,
-      address: row.venue.address,
-      website: row.venue.website,
-      website_url: row.venue.website_url
-    } : null,
+        null),
+    venue: row.venue
+      ? {
+          id: row.venue_id,
+          name: row.venue.name,
+          address: row.venue.address,
+          website: row.venue.website,
+          website_url: row.venue.website_url,
+        }
+      : null,
   }));
 
   return <DealsClient items={items} />;

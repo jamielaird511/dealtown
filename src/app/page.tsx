@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
-export default function HomePage() {
+export default function Home() {
+  // default region
   redirect("/queenstown");
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { X, MapPin } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   isBefore2PM,
   isTimeBetween,
@@ -14,13 +15,31 @@ import {
 import { LocationInput } from "./LocationInput";
 
 const DISTANCE_OPTIONS = [
-  { value: 1000, label: "1km" },
-  { value: 2000, label: "2km" },
-  { value: 5000, label: "5km" },
-  { value: 10000, label: "10km" },
+  { value: 500, label: "500 m" },
+  { value: 1000, label: "1 km" },
+  { value: 2000, label: "2 km" },
+  { value: 5000, label: "5 km" },
+  { value: 10000, label: "10 km" },
+  { value: null, label: "Whole region" },
 ];
 
 const MAX_REASONABLE_DISTANCE = 50000; // 50km, beyond this we assume bad IP-based location
+
+// Map UI labels to internal deal type slugs
+const DEAL_TYPE_MAP: Record<string, "all" | "daily" | "lunch" | "happy-hour"> = {
+  "All deals": "all",
+  "Daily deals": "daily",
+  "Lunch specials": "lunch",
+  "Happy hour": "happy-hour",
+};
+
+/**
+ * Check if current time is before 3pm (15:00)
+ */
+function isBefore3pm(date = new Date()) {
+  const hour = date.getHours();
+  return hour < 15; // 0–14 = before 3pm
+}
 
 /**
  * Calculate haversine distance between two coordinates (in meters)
@@ -51,6 +70,16 @@ function formatDistance(meters: number) {
   if (km < 5) return "<5 km away";
   if (km < 10) return "<10 km away";
   return "10+ km away";
+}
+
+function buildMapsLink(venue: { address?: string | null; lat?: number | null; lng?: number | null }) {
+  if (venue?.lat && venue?.lng) {
+    return `https://www.google.com/maps/search/?api=1&query=${venue.lat},${venue.lng}`;
+  }
+  if (venue?.address) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.address)}`;
+  }
+  return null;
 }
 
 type Venue = {
@@ -108,14 +137,26 @@ export default function DealMeModal({
 }) {
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [allDeals, setAllDeals] = useState<DealItem[]>([]);
   const [allLunch, setAllLunch] = useState<LunchItem[]>([]);
   const [allHappyHours, setAllHappyHours] = useState<HappyHourItem[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [radius, setRadius] = useState(5000); // 5km default
-  const [when, setWhen] = useState<"now" | "next" | "today">("now");
+  const [dealTypeLabel, setDealTypeLabel] = useState<string>("All deals");
+  
+  // Get internal deal type from label
+  const dealType = DEAL_TYPE_MAP[dealTypeLabel] ?? "all";
+  const [radius, setRadius] = useState<number | null>(2000); // 2km default
+  const [locationSource, setLocationSource] = useState<"auto" | "manual">("auto");
+  const [when, setWhen] = useState<"now" | "1hour" | "2hours" | "today">("today");
+  const [isFallback, setIsFallback] = useState(false);
   const hasLoaded = useRef(false);
+
+  useEffect(() => {
+    if (!open) return;
+    console.log("[deal-me] region:", currentRegion);
+  }, [open, currentRegion]);
 
   // Handler for "Use my location" button
   const handleUseMyLocation = () => {
@@ -131,6 +172,7 @@ export default function DealMeModal({
           lng: pos.coords.longitude,
         });
         setLocationError(null);
+        setLocationSource("auto");
       },
       (err) => {
         setLocationError(err?.message || "Could not get your location – try typing a location.");
@@ -147,6 +189,7 @@ export default function DealMeModal({
   const handleLocationFromSearch = (loc: { lat: number; lng: number }) => {
     setUserLocation(loc);
     setLocationError(null);
+    setLocationSource("manual");
   };
 
   // Reset hasLoaded when modal closes so it can load again next time
@@ -155,6 +198,12 @@ export default function DealMeModal({
       hasLoaded.current = false;
       setUserLocation(null); // Reset location on close
       setLocationError(null); // Reset error on close
+      setLocationSource("auto"); // Reset to auto location
+          setDealTypeLabel("All deals"); // Reset to all deals
+      setRadius(2000); // Reset to 2km
+      setWhen("today"); // Reset to "Today"
+      setIsInitialLoad(true); // Reset initial load state
+      setIsFallback(false); // Reset fallback state
     }
   }, [open]);
 
@@ -174,6 +223,7 @@ export default function DealMeModal({
           lng: pos.coords.longitude,
         });
         setLocationError(null);
+        setLocationSource("auto");
         console.log("GEO OK", pos.coords);
       },
       (err) => {
@@ -197,41 +247,52 @@ export default function DealMeModal({
 
     async function load() {
       setLoading(true);
+      setIsInitialLoad(true);
+      const startTime = Date.now();
 
       try {
-        const [dealsRes, lunchRes, hhRes] = await Promise.all([
-          supabase
-            .from("deals")
-            .select(
-              `
-              id, title, description, effective_price_cents, price_cents, region,
-              day_of_week, start_time, end_time,
-              venue:venues!deals_venue_fk ( id, name, address, region, lat, lng )
+        // 1) daily deals for this region
+        const dealsPromise = supabase
+          .from("deals")
+          .select(
             `
-            )
-            .eq("region", currentRegion)
-            .eq("is_active", true),
-          supabase
-            .from("lunch_menus")
-            .select(
-              `
-              id, title, details, price, days_of_week, start_time, end_time,
-              venues:venues!lunch_menus_venue_id_fkey ( id, name, address, region, lat, lng )
+            id, title, description, effective_price_cents, price_cents, region,
+            day_of_week, start_time, end_time,
+            venue:venues!deals_venue_fk ( id, name, address, region, lat, lng )
+          `
+          )
+          .eq("region", currentRegion)
+          .eq("is_active", true);
+
+        // 2) lunch specials – from the *view*
+        const lunchPromise = supabase
+          .from("lunch_specials")
+          .select("*")
+          .eq("is_active", true);
+
+        // 3) happy hours
+        const hhPromise = supabase
+          .from("happy_hours")
+          .select(
             `
-            )
-            .eq("is_active", true),
-          supabase
-            .from("happy_hours")
-            .select(
-              `
-              id, details, price_cents, days, start_time, end_time,
-              venues:venues!happy_hours_venue_id_fkey ( id, name, address, region, lat, lng )
-            `
-            )
-            .eq("is_active", true),
+            id,
+            details,
+            price_cents,
+            start_time,
+            end_time,
+            days,
+            venue:venues!happy_hours_venue_id_fkey ( id, name, address, suburb, region, website_url, lat, lng )
+          `
+          )
+          .eq("is_active", true);
+
+        const [dealsRes, lunchViewRes, hhRes] = await Promise.all([
+          dealsPromise,
+          lunchPromise,
+          hhPromise,
         ]);
 
-        // Filter by region and map to consistent structure
+        // ----- DAILY DEALS -----
         const deals = (dealsRes.data ?? [])
           .filter((d: any) => d.venue?.region === currentRegion || d.region === currentRegion)
           .map((d: any) => ({
@@ -242,34 +303,76 @@ export default function DealMeModal({
             venue: d.venue,
             start_time: d.start_time,
             end_time: d.end_time,
-            days: null, // deals.day_of_week is string or number, not array
-            day_of_week: d.day_of_week, // Preserve for day filtering
+            day_of_week: d.day_of_week,
+            days: null,
           }));
 
-        const lunch = (lunchRes.data ?? [])
-          .filter((l: any) => l.venues?.region === currentRegion)
-          .map((l: any) => ({
-            id: l.id,
-            title: l.title,
-            details: l.details,
-            price: l.price,
-            venue: l.venues,
-            start_time: l.start_time,
-            end_time: l.end_time,
-            days: l.days_of_week, // Already array
-          }));
+        // ----- LUNCH SPECIALS -----
+        const lunchRows = lunchViewRes.data ?? [];
 
+        const venueIds = Array.from(
+          new Set(lunchRows.map((r: any) => r.venue_id).filter(Boolean))
+        );
+
+        let venueMap: Record<
+          number,
+          { id: number; name?: string | null; address?: string | null; region?: string | null; lat?: number | null; lng?: number | null }
+        > = {};
+
+        if (venueIds.length > 0) {
+          const { data: lunchVenues } = await supabase
+            .from("venues")
+            .select("id, name, address, region, lat, lng")
+            .in("id", venueIds);
+
+          venueMap = Object.fromEntries(
+            (lunchVenues ?? []).map((v) => [v.id, v])
+          );
+        }
+
+        const lunch = lunchRows
+          .map((row: any) => {
+            const v = venueMap[row.venue_id] || {};
+            const venue = {
+              id: v.id ?? row.venue_id ?? 0,
+              name: (v.name ?? "") as string,
+              address: v.address ?? null,
+              region: v.region ?? currentRegion,
+              lat: v.lat ?? null,
+              lng: v.lng ?? null,
+            };
+            return {
+              id: row.id,
+              title: row.title,
+              details: row.description,
+              price: row.price ?? null,
+              venue,
+              start_time: row.start_time,
+              end_time: row.end_time,
+              days: null, // view doesn't give us array-of-days, we treat as "today"
+            };
+          })
+          .filter((l: any) => (l.venue?.region ?? currentRegion) === currentRegion);
+
+        // ----- HAPPY HOURS -----
         const happyHours = (hhRes.data ?? [])
-          .filter((h: any) => h.venues?.region === currentRegion)
+          .filter((h: any) => h.venue?.region === currentRegion)
           .map((h: any) => ({
             id: h.id,
             details: h.details,
             price_cents: h.price_cents,
-            venue: h.venues,
+            venue: h.venue,
             start_time: h.start_time,
             end_time: h.end_time,
-            days: h.days, // Already array (0-based)
+            days: h.days,
           }));
+
+        console.log("[deal-me] fetched base rows:", {
+          deals: deals.length,
+          lunch: lunch.length,
+          happyHours: happyHours.length,
+          region: currentRegion,
+        });
 
         setAllDeals(deals);
         setAllLunch(lunch);
@@ -277,7 +380,12 @@ export default function DealMeModal({
       } catch (error) {
         console.error("[DealMeModal] fetch error", error);
       } finally {
-        setLoading(false);
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 300 - elapsed);
+        setTimeout(() => {
+          setLoading(false);
+          setIsInitialLoad(false);
+        }, remaining);
       }
     }
 
@@ -329,8 +437,7 @@ export default function DealMeModal({
     return h * 60 + m;
   }
 
-  function dealMatchesWhen(deal: any, when: "now" | "next" | "today", now: Date) {
-    // if deal has no time window, let it through
+  function dealMatchesWhen(deal: any, when: "now" | "1hour" | "2hours" | "today", now: Date) {
     const startM = timeToMinutes(deal?.start_time);
     const endM = timeToMinutes(deal?.end_time);
     if (startM === null || endM === null) return true;
@@ -341,16 +448,17 @@ export default function DealMeModal({
       return currentM >= startM && currentM <= endM;
     }
 
-    if (when === "next") {
-      // "Next Hour": anything starting within the next 60 min
-      return startM >= currentM && startM <= currentM + 60;
+    if (when === "1hour") {
+      const target = currentM + 60;
+      return target >= startM && target <= endM;
     }
 
-    // "today": any deal that has a time window today
-    if (when === "today") {
-      return true;
+    if (when === "2hours") {
+      const target = currentM + 120;
+      return target >= startM && target <= endM;
     }
 
+    // "today"
     return true;
   }
 
@@ -358,19 +466,20 @@ export default function DealMeModal({
   const { dailyDeals, lunchDeals, happyHours, showFallback } = useMemo(() => {
     const now = new Date();
     const todayDow = now.getDay();
-    const whenFilter = when;
 
-    // Filter by day/time FIRST, before distance calculations
-    const dayTimeFilteredDaily = allDeals.filter((deal) => {
-      return dealMatchesToday(deal, todayDow) && dealMatchesWhen(deal, whenFilter, now);
+    // 1) Daily deals – normal day + time filtering
+    const dayTimeFilteredDaily = (allDeals ?? []).filter((deal) => {
+      return dealMatchesToday(deal, todayDow) && dealMatchesWhen(deal, when, now);
     });
 
-    const dayTimeFilteredLunch = allLunch.filter((lunch) => {
-      return dealMatchesToday(lunch, todayDow) && dealMatchesWhen(lunch, whenFilter, now);
-    });
+    // 2) Lunch deals – show today's lunches, ignore "when" time windows
+    let dayTimeFilteredLunch: LunchItem[] = (allLunch ?? []).filter((lunch) =>
+      dealMatchesToday(lunch, todayDow)
+    );
 
-    const dayTimeFilteredHappy = allHappyHours.filter((hh) => {
-      return dealMatchesToday(hh, todayDow) && dealMatchesWhen(hh, whenFilter, now);
+    // 3) Happy hours – normal day + time filtering
+    const dayTimeFilteredHappy = (allHappyHours ?? []).filter((hh) => {
+      return dealMatchesToday(hh, todayDow) && dealMatchesWhen(hh, when, now);
     });
 
     // Calculate distances for day/time filtered items if we have user location
@@ -401,7 +510,7 @@ export default function DealMeModal({
       return { ...hh, _distance: null };
     });
 
-    // Check if location is obviously bad (>50km from all venues)
+    // Determine if distance filtering should apply
     const allWithDistances = [
       ...withDistancesDaily,
       ...withDistancesLunch,
@@ -410,53 +519,69 @@ export default function DealMeModal({
     const hasAnyClose = allWithDistances.some(
       (d) => typeof d._distance === "number" && d._distance < MAX_REASONABLE_DISTANCE
     );
+    const radiusActive = Boolean(userLocation && radius != null);
+    const radiusLimit = radius ?? Infinity;
+    const shouldFilterByDistance = radiusActive && hasAnyClose;
 
-    // Determine if we should apply distance filtering
-    const shouldFilterByDistance = userLocation && hasAnyClose;
+    // Apply distance filtering if needed
+    const filteredDaily = shouldFilterByDistance
+      ? withDistancesDaily.filter((d) => d._distance == null || d._distance <= radiusLimit)
+      : withDistancesDaily;
 
-    // Daily deals: always allowed, but apply distance if we have a good location
-    let filteredDaily: DealItem[] = [];
-    if (shouldFilterByDistance) {
-      filteredDaily = withDistancesDaily.filter(
-        (d) => d._distance == null || d._distance <= radius
-      );
-    } else {
-      filteredDaily = withDistancesDaily;
+    const filteredLunch = shouldFilterByDistance
+      ? withDistancesLunch.filter((l) => l._distance == null || l._distance <= radiusLimit)
+      : withDistancesLunch;
+
+    const filteredHappy = shouldFilterByDistance
+      ? withDistancesHappy.filter((h) => h._distance == null || h._distance <= radiusLimit)
+      : withDistancesHappy;
+
+    // Apply deal type filter
+    const finalDaily = dealType === "all" || dealType === "daily" ? filteredDaily : [];
+    const finalLunch = dealType === "all" || dealType === "lunch" ? filteredLunch : [];
+    const finalHappy = dealType === "all" || dealType === "happy-hour" ? filteredHappy : [];
+
+    const primaryResultsEmpty =
+      finalDaily.length === 0 && finalLunch.length === 0 && finalHappy.length === 0;
+
+    const userAskedForStrictFilters = radiusActive || when !== "today";
+
+    const shouldShowFallback =
+      primaryResultsEmpty &&
+      (allDeals.length > 0 || allLunch.length > 0 || allHappyHours.length > 0) &&
+      !userAskedForStrictFilters;
+
+    console.log("[deal-me] after filters:", {
+      daily: finalDaily.length,
+      lunch: finalLunch.length,
+      happy: finalHappy.length,
+      fallback: shouldShowFallback,
+    });
+
+    if (shouldShowFallback) {
+      return {
+        dailyDeals: dealType === "all" || dealType === "daily" ? allDeals : [],
+        lunchDeals:
+          dealType === "all" || dealType === "lunch"
+            ? allLunch
+            : [],
+        happyHours: dealType === "all" || dealType === "happy-hour" ? allHappyHours : [],
+        showFallback: true,
+      };
     }
-
-    // Lunch deals: apply distance filter to day/time filtered items
-    let filteredLunch: LunchItem[] = [];
-    if (shouldFilterByDistance) {
-      filteredLunch = withDistancesLunch.filter(
-        (l) => l._distance == null || l._distance <= radius
-      );
-    } else {
-      filteredLunch = withDistancesLunch;
-    }
-
-    // Happy hours: apply distance filter to day/time filtered items
-    let filteredHappy: HappyHourItem[] = [];
-    if (shouldFilterByDistance) {
-      filteredHappy = withDistancesHappy.filter(
-        (h) => h._distance == null || h._distance <= radius
-      );
-    } else {
-      filteredHappy = withDistancesHappy;
-    }
-
-    // Check if nothing found after filtering
-    const nothingFound =
-      filteredDaily.length === 0 &&
-      filteredLunch.length === 0 &&
-      filteredHappy.length === 0;
 
     return {
-      dailyDeals: filteredDaily,
-      lunchDeals: filteredLunch,
-      happyHours: filteredHappy,
-      showFallback: nothingFound && allDeals.length > 0,
+      dailyDeals: finalDaily,
+      lunchDeals: finalLunch,
+      happyHours: finalHappy,
+        showFallback: shouldShowFallback,
     };
-  }, [allDeals, allLunch, allHappyHours, userLocation, radius, when]);
+  }, [allDeals, allLunch, allHappyHours, userLocation, radius, when, dealType]);
+
+  // Update isFallback state based on showFallback
+  useEffect(() => {
+    setIsFallback(showFallback);
+  }, [showFallback]);
 
   const formatTime = (time: string | null | undefined): string => {
     if (!time) return "";
@@ -480,86 +605,148 @@ export default function DealMeModal({
   const regionLabel =
     currentRegion.charAt(0).toUpperCase() + currentRegion.slice(1);
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col m-4">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-semibold">Deals near you</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition"
-            aria-label="Close"
+    <AnimatePresence>
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
+        >
+          <motion.div
+            key="deal-me-modal"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="bg-white rounded-t-2xl md:rounded-2xl shadow-lg fixed inset-x-0 bottom-0 md:relative md:inset-x-auto md:w-[720px] md:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col md:m-4"
+            onClick={(e) => e.stopPropagation()}
           >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 md:p-6 border-b">
+            <h2 className="text-xl md:text-2xl font-semibold">Deals near you</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-        {/* Filters */}
-        <div className="p-4 border-b bg-gray-50">
-          <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
-            <div className="flex flex-wrap gap-3 items-center">
+          {/* Filters */}
+          <div className="p-4 border-b bg-gray-50 space-y-3">
+            {/* First row: Deal Type, Within, Location */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Deal Type */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Within:</span>
-                <div className="flex gap-1">
-                  {DISTANCE_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setRadius(opt.value)}
-                      className={`px-3 py-1 text-sm rounded-md transition ${
-                        radius === opt.value
-                          ? "bg-orange-500 text-white"
-                          : "bg-white border hover:bg-gray-50"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+                <label className="text-sm text-gray-600 whitespace-nowrap">Deal me a</label>
+                <select
+                  value={dealTypeLabel}
+                  onChange={(e) => setDealTypeLabel(e.target.value)}
+                  className="w-full md:w-auto px-3 py-1 text-sm rounded-md border bg-white"
+                >
+                  <option value="All deals">All deals</option>
+                  <option value="Daily deals">Daily deals</option>
+                  <option value="Lunch specials">Lunch specials</option>
+                  <option value="Happy hour">Happy hour</option>
+                </select>
               </div>
+
+              {/* Distance */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">When:</span>
-                <div className="flex gap-1">
-                  {(["now", "next", "today"] as const).map((w) => (
-                    <button
-                      key={w}
-                      onClick={() => setWhen(w)}
-                      className={`px-3 py-1 text-sm rounded-md transition capitalize ${
-                        when === w
-                          ? "bg-orange-500 text-white"
-                          : "bg-white border hover:bg-gray-50"
-                      }`}
-                    >
-                      {w === "next" ? "Next hour" : w}
-                    </button>
+                <label className="text-sm text-gray-600 whitespace-nowrap">Within</label>
+                <select
+                  value={radius ?? ""}
+                  onChange={(e) => setRadius(e.target.value === "" ? null : Number(e.target.value))}
+                  className="w-full md:w-auto px-3 py-1 text-sm rounded-md border bg-white"
+                >
+                  {DISTANCE_OPTIONS.map((opt) => (
+                    <option key={opt.value ?? "whole-region"} value={opt.value ?? ""}>
+                      {opt.label}
+                    </option>
                   ))}
-                </div>
+                </select>
+              </div>
+
+              {/* Location Source */}
+              <div className="flex flex-wrap items-center gap-2 w-full">
+                <label className="text-sm text-gray-600 whitespace-nowrap md:hidden">Location</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLocationSource("auto");
+                    handleUseMyLocation();
+                  }}
+                  className={`px-3 py-1 text-sm rounded-md transition ${
+                    locationSource === "auto"
+                      ? "bg-orange-500 text-white"
+                      : "bg-white border hover:bg-gray-50"
+                  }`}
+                >
+                  Use my location
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocationSource("manual")}
+                  className={`px-3 py-1 text-sm rounded-md transition ${
+                    locationSource === "manual"
+                      ? "bg-orange-500 text-white"
+                      : "bg-white border hover:bg-gray-50"
+                  }`}
+                >
+                  Enter location
+                </button>
+                {locationSource === "manual" && (
+                  <LocationInput onSelectLocation={handleLocationFromSearch} />
+                )}
               </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleUseMyLocation}
-                className="text-xs bg-orange-100 text-orange-600 px-3 py-1 rounded-full hover:bg-orange-200"
+
+            {/* Second row: When */}
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">
+                When
+              </label>
+              <select
+                value={when}
+                onChange={(e) => setWhen(e.target.value as "now" | "1hour" | "2hours" | "today")}
+                className="w-full md:w-auto rounded-md border border-slate-200 px-3 py-2 text-sm"
               >
-                Use my location
-              </button>
-              <LocationInput onSelectLocation={handleLocationFromSearch} />
+                <option value="now">Now</option>
+                <option value="today">Today</option>
+                <option value="1hour">On in 1 hour</option>
+                <option value="2hours">On in 2 hours</option>
+              </select>
             </div>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="overflow-y-auto flex-1 p-6 space-y-6">
-          {loading ? (
-            <div className="text-center py-12 text-gray-500">Loading deals...</div>
+          {/* Content */}
+          <div className="overflow-y-auto flex-1 p-4 md:p-6 space-y-6">
+          {loading || isInitialLoad ? (
+            <div className="space-y-6">
+              {/* Skeleton Loader */}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="space-y-3">
+                  <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
+                  <ul className="space-y-3">
+                    {[1, 2].map((j) => (
+                      <li key={j} className="p-3 border rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 space-y-2">
+                            <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
+                            <div className="h-4 w-64 bg-gray-200 rounded animate-pulse" />
+                            <div className="h-3 w-32 bg-gray-200 rounded animate-pulse" />
+                          </div>
+                          <div className="h-6 w-16 bg-gray-200 rounded animate-pulse" />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           ) : (
             <>
               {locationError && (
@@ -567,83 +754,28 @@ export default function DealMeModal({
                   {locationError}
                 </p>
               )}
-              {showFallback ? (
-                <>
-                  <div className="text-center py-4 text-gray-600">
-                    No deals matched your filters (distance/time). Here are today's deals in {regionLabel}.
-                  </div>
-                  <section>
-                    <h3 className="text-lg font-semibold mb-3">Daily Deals</h3>
-                    {allDeals.length === 0 ? (
-                      <p className="text-gray-500 text-sm">No deals available.</p>
-                    ) : (
-                      <ul className="space-y-3">
-                        {allDeals.map((deal) => {
-                          // For fallback, calculate distance on the fly (venue may not have _distance yet)
-                          let distText: string | null = null;
-                          if (deal.venue?.lat && deal.venue?.lng && userLocation) {
-                            const dist = haversineMeters(userLocation, { lat: deal.venue.lat, lng: deal.venue.lng });
-                            if (dist < MAX_REASONABLE_DISTANCE) {
-                              distText = formatDistance(dist);
-                            }
-                          }
-                          return (
-                            <li
-                              key={deal.id}
-                              className="p-3 border rounded-lg hover:bg-gray-50"
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="font-medium">{deal.venue.name}</div>
-                                  <div className="text-sm text-gray-700 mt-1">
-                                    {deal.title}
-                                  </div>
-                                  {deal.description && (
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      {deal.description}
-                                    </div>
-                                  )}
-                                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                                    {deal.venue.address && (
-                                      <span className="flex items-center gap-1">
-                                        <MapPin className="w-3 h-3" />
-                                        {deal.venue.address}
-                                      </span>
-                                    )}
-                                    {distText && <span>{distText}</span>}
-                                  </div>
-                                </div>
-                                {deal.price_cents && (
-                                  <div className="ml-4 text-right">
-                                    <div className="font-semibold text-orange-600">
-                                      ${(deal.price_cents / 100).toFixed(2)}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </section>
-                </>
-              ) : (
-                <>
-                  {/* Daily Deals */}
-                  {dailyDeals.length > 0 && (
+              {showFallback && isFallback && (
+                <div className="rounded-lg bg-orange-50 border border-orange-200 px-4 py-3 mb-4">
+                  <p className="text-sm text-orange-800">
+                    No deals matched your distance and time filters. Showing {dealTypeLabel.toLowerCase()} in {regionLabel} instead.
+                  </p>
+                </div>
+              )}
+              <>
+                {/* Daily Deals */}
+                {dailyDeals.length > 0 && (
                 <section>
                   <h3 className="text-lg font-semibold mb-3">Daily Deals</h3>
                   <ul className="space-y-3">
                     {dailyDeals.map((deal) => {
                       const distText =
-                        deal._distance != null && deal._distance < MAX_REASONABLE_DISTANCE
+                        typeof deal._distance === "number"
                           ? formatDistance(deal._distance)
                           : null;
                       return (
                         <li
                           key={deal.id}
-                          className="p-3 border rounded-lg hover:bg-gray-50"
+                          className="p-3 border-[1.5px] border-orange-200/80 rounded-xl bg-white/80 hover:bg-orange-50 transition-colors duration-200"
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -658,10 +790,25 @@ export default function DealMeModal({
                               )}
                               <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
                                 {deal.venue.address && (
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    {deal.venue.address}
-                                  </span>
+                                  (() => {
+                                    const link = buildMapsLink(deal.venue);
+                                    return link ? (
+                                      <a
+                                        href={link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 underline-offset-2 hover:underline"
+                                      >
+                                        <MapPin className="w-3 h-3" />
+                                        {deal.venue.address}
+                                      </a>
+                                    ) : (
+                                      <span className="flex items-center gap-1">
+                                        <MapPin className="w-3 h-3" />
+                                        {deal.venue.address}
+                                      </span>
+                                    );
+                                  })()
                                 )}
                                 {distText && <span>{distText}</span>}
                               </div>
@@ -688,7 +835,7 @@ export default function DealMeModal({
                   <ul className="space-y-3">
                     {lunchDeals.map((lunch) => {
                       const distText =
-                        lunch._distance != null && lunch._distance < MAX_REASONABLE_DISTANCE
+                        typeof lunch._distance === "number"
                           ? formatDistance(lunch._distance)
                           : null;
                       const timeRange = formatTimeRange(
@@ -698,7 +845,7 @@ export default function DealMeModal({
                       return (
                         <li
                           key={lunch.id}
-                          className="p-3 border rounded-lg hover:bg-gray-50"
+                          className="p-3 border-[1.5px] border-orange-200/80 rounded-xl bg-white/80 hover:bg-orange-50 transition-colors duration-200"
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -715,10 +862,25 @@ export default function DealMeModal({
                               )}
                               <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
                                 {lunch.venue.address && (
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    {lunch.venue.address}
-                                  </span>
+                                  (() => {
+                                    const link = buildMapsLink(lunch.venue);
+                                    return link ? (
+                                      <a
+                                        href={link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 underline-offset-2 hover:underline"
+                                      >
+                                        <MapPin className="w-3 h-3" />
+                                        {lunch.venue.address}
+                                      </a>
+                                    ) : (
+                                      <span className="flex items-center gap-1">
+                                        <MapPin className="w-3 h-3" />
+                                        {lunch.venue.address}
+                                      </span>
+                                    );
+                                  })()
                                 )}
                                 {distText && <span>{distText}</span>}
                               </div>
@@ -745,7 +907,7 @@ export default function DealMeModal({
                   <ul className="space-y-3">
                     {happyHours.map((hh) => {
                       const distText =
-                        hh._distance != null && hh._distance < MAX_REASONABLE_DISTANCE
+                        typeof hh._distance === "number"
                           ? formatDistance(hh._distance)
                           : null;
                       const timeRange = formatTimeRange(hh.start_time, hh.end_time);
@@ -756,7 +918,7 @@ export default function DealMeModal({
                       return (
                         <li
                           key={hh.id}
-                          className="p-3 border rounded-lg hover:bg-gray-50"
+                          className="p-3 border-[1.5px] border-orange-200/80 rounded-xl bg-white/80 hover:bg-orange-50 transition-colors duration-200"
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -780,10 +942,25 @@ export default function DealMeModal({
                               )}
                               <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
                                 {hh.venue.address && (
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    {hh.venue.address}
-                                  </span>
+                                  (() => {
+                                    const link = buildMapsLink(hh.venue);
+                                    return link ? (
+                                      <a
+                                        href={link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 underline-offset-2 hover:underline"
+                                      >
+                                        <MapPin className="w-3 h-3" />
+                                        {hh.venue.address}
+                                      </a>
+                                    ) : (
+                                      <span className="flex items-center gap-1">
+                                        <MapPin className="w-3 h-3" />
+                                        {hh.venue.address}
+                                      </span>
+                                    );
+                                  })()
                                 )}
                                 {distText && <span>{distText}</span>}
                               </div>
@@ -803,7 +980,7 @@ export default function DealMeModal({
                 </section>
               )}
 
-                  {!showFallback && dailyDeals.length === 0 && lunchDeals.length === 0 && happyHours.length === 0 && (
+                  {!showFallback && !loading && !isInitialLoad && dailyDeals.length === 0 && lunchDeals.length === 0 && happyHours.length === 0 && (
                     <>
                       {!userLocation && (
                         <div className="mb-3 rounded-lg bg-orange-50 border border-orange-200 px-3 py-2">
@@ -817,12 +994,13 @@ export default function DealMeModal({
                       </div>
                     </>
                   )}
-                </>
-              )}
+              </>
             </>
           )}
+          </div>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 }

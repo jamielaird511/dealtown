@@ -50,6 +50,7 @@ export default async function AnalyticsPage() {
   let venues: Venue[] = [];
   let dailyRows: DailyRow[] = [];
   let uniqueVisitorsToday: number = 0;
+  let dealsNearMeCount: number | null = null;
   let errorMsg: string | null = null;
   let labels = new Map<string, string>(); // key `${type}:${id}` -> label
 
@@ -101,6 +102,18 @@ export default async function AnalyticsPage() {
     } else {
       const uniqueSessions = new Set(todayData?.map(row => row.session_id).filter(Boolean));
       uniqueVisitorsToday = uniqueSessions.size;
+    }
+
+    // Deals Near Me clicks count
+    const { count: dealsNearMeCountResult, error: dealsNearMeErr } = await sb
+      .from("analytics_events")
+      .select("id", { count: "exact", head: true })
+      .eq("event_name", "deals_near_me_click");
+
+    if (dealsNearMeErr) {
+      console.error("[deals near me count] error", dealsNearMeErr);
+    } else {
+      dealsNearMeCount = dealsNearMeCountResult ?? 0;
     }
 
     // Collect ids per entity type and resolve titles
@@ -241,6 +254,19 @@ export default async function AnalyticsPage() {
         <div className="rounded-2xl border p-4 shadow-sm">
           <div className="text-sm text-muted-foreground">Unique visitors today</div>
           <div className="mt-1 text-2xl font-semibold">{uniqueVisitorsToday}</div>
+        </div>
+      </div>
+
+      {/* Deals Near Me Clicks */}
+      <div className="mt-6">
+        <div className="rounded-lg bg-white border p-4">
+          <h2 className="text-sm font-medium text-slate-700">Deals near me clicks</h2>
+          <p className="text-3xl font-semibold mt-2">
+            {dealsNearMeCount ?? 0}
+          </p>
+          <p className="text-xs text-slate-400 mt-1">
+            Total clicks on the "Deals near me" CTA.
+          </p>
         </div>
       </div>
 

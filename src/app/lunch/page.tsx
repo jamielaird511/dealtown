@@ -15,11 +15,10 @@ export const revalidate = 60;
 export default async function LunchPage() {
   const supabase = getSupabaseServerComponentClient();
 
-  // 1) Pull lunch rows from the dedicated view
   const { data: lunchRows, error: e0 } = await supabase
     .from('lunch_specials')
-    .select('*')                     // view already filters to lunch
-    .eq('is_active', true)           // keep if the view exposes this
+    .select('*')
+    .eq('is_active', true)
     .order('start_time', { ascending: true, nullsFirst: false })
     .order('id', { ascending: true });
 
@@ -33,8 +32,10 @@ export default async function LunchPage() {
     return <LunchClient items={[]} />;
   }
 
-  // 2) Fetch venues for the referenced venue_ids
-  const venueIds = Array.from(new Set(rows.map((r: any) => r.venue_id).filter(Boolean)));
+  const venueIds = Array.from(
+    new Set(rows.map((r: any) => r.venue_id).filter(Boolean))
+  );
+
   let venueMap: Record<number, { id: number; name?: string | null; address?: string | null; website_url?: string | null }> = {};
 
   if (venueIds.length > 0) {
@@ -50,7 +51,6 @@ export default async function LunchPage() {
     }
   }
 
-  // 3) Map rows → UI items
   const items = rows.map((row: any) => {
     const v = venueMap[row.venue_id] || {};
     return {
@@ -59,7 +59,7 @@ export default async function LunchPage() {
       title: row.title,
       description: row.description,
       price: row?.price ?? null,
-      days_of_week: null, // not used here
+      days_of_week: null,
       start_time: row.start_time,
       end_time: row.end_time,
       venueName: v.name ?? null,
@@ -68,7 +68,6 @@ export default async function LunchPage() {
     };
   });
 
-  // 4) Sort for nice UX (time then venue)
   items.sort((a, b) => {
     const at = a.start_time ?? '99:99';
     const bt = b.start_time ?? '99:99';

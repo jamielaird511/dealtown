@@ -11,15 +11,17 @@ export default function DayTabs() {
 
   // Sync with URL on mount
   useEffect(() => {
+    if (!searchParams) return;
     const dayParam = searchParams.get('day');
     if (dayParam && DAY_ORDER.includes(dayParam as DayKey)) {
       setDay(dayParam as DayKey);
     }
-  }, [searchParams, setDay]);
+  }, [searchParams]);
 
   // Update URL when day changes
   const handleDayChange = (newDay: DayKey) => {
     setDay(newDay);
+    if (!searchParams) return;
     const params = new URLSearchParams(searchParams.toString());
     params.set('day', newDay);
     router.replace(`?${params.toString()}`, { scroll: false });
