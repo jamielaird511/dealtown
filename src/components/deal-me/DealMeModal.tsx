@@ -154,6 +154,16 @@ export default function DealMeModal({
   const [isFallback, setIsFallback] = useState(false);
   const hasLoaded = useRef(false);
 
+  // lock body scroll when modal is open
+  useEffect(() => {
+    if (!open) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     console.log("[deal-me] region:", currentRegion);
@@ -643,7 +653,7 @@ export default function DealMeModal({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="w-full md:max-w-lg bg-white rounded-t-3xl md:rounded-2xl shadow-lg max-h-[100vh] overflow-y-auto pb-6 relative"
+            className="w-full md:max-w-lg bg-white rounded-t-3xl md:rounded-2xl shadow-lg max-h-[100vh] pb-0 relative overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -761,7 +771,7 @@ export default function DealMeModal({
           </div>
 
           {/* Content */}
-          <div className="overflow-y-auto flex-1 p-4 md:p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           {loading || isInitialLoad ? (
             <div className="space-y-6">
               {/* Skeleton Loader */}
