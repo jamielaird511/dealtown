@@ -463,7 +463,7 @@ export default function DealMeModal({
   }
 
   // Filter and group deals based on time, distance, and "when" filter
-  const { dailyDeals, lunchDeals, happyHours, showFallback } = useMemo(() => {
+  const { dailyDeals, lunchDeals, happyHours, showFallback, typeFallback } = useMemo(() => {
     const now = new Date();
     const todayDow = now.getDay();
 
@@ -510,36 +510,42 @@ export default function DealMeModal({
       return { ...hh, _distance: null };
     });
 
-    // Determine if distance filtering should apply
-    const allWithDistances = [
-      ...withDistancesDaily,
-      ...withDistancesLunch,
-      ...withDistancesHappy,
-    ];
-    const hasAnyClose = allWithDistances.some(
-      (d) => typeof d._distance === "number" && d._distance < MAX_REASONABLE_DISTANCE
-    );
-    const radiusActive = Boolean(userLocation && radius != null);
     const radiusLimit = radius ?? Infinity;
-    const shouldFilterByDistance = radiusActive && hasAnyClose;
+    const radiusActive = Boolean(userLocation && radius != null);
+    const noLocation =
+      !userLocation ||
+      typeof userLocation.lat !== "number" ||
+      typeof userLocation.lng !== "number" ||
+      Number.isNaN(userLocation.lat) ||
+      Number.isNaN(userLocation.lng);
+    const wholeRegionSelected = radius == null;
 
-    // Apply distance filtering if needed
-    const filteredDaily = shouldFilterByDistance
+    const filteredDaily = radiusActive && !noLocation
       ? withDistancesDaily.filter((d) => d._distance == null || d._distance <= radiusLimit)
       : withDistancesDaily;
 
-    const filteredLunch = shouldFilterByDistance
+    const filteredLunch = radiusActive && !noLocation
       ? withDistancesLunch.filter((l) => l._distance == null || l._distance <= radiusLimit)
       : withDistancesLunch;
 
-    const filteredHappy = shouldFilterByDistance
+    const filteredHappy = radiusActive && !noLocation
       ? withDistancesHappy.filter((h) => h._distance == null || h._distance <= radiusLimit)
       : withDistancesHappy;
 
     // Apply deal type filter
-    const finalDaily = dealType === "all" || dealType === "daily" ? filteredDaily : [];
-    const finalLunch = dealType === "all" || dealType === "lunch" ? filteredLunch : [];
-    const finalHappy = dealType === "all" || dealType === "happy-hour" ? filteredHappy : [];
+    let finalDaily = dealType === "all" || dealType === "daily" ? filteredDaily : [];
+    let finalLunch = dealType === "all" || dealType === "lunch" ? filteredLunch : [];
+    let finalHappy = dealType === "all" || dealType === "happy-hour" ? filteredHappy : [];
+
+    const noResultsAfterType =
+      finalDaily.length === 0 && finalLunch.length === 0 && finalHappy.length === 0 &&
+      dealType !== "all";
+
+    if (noResultsAfterType) {
+      finalDaily = filteredDaily;
+      finalLunch = filteredLunch;
+      finalHappy = filteredHappy;
+    }
 
     const primaryResultsEmpty =
       finalDaily.length === 0 && finalLunch.length === 0 && finalHappy.length === 0;
@@ -547,26 +553,34 @@ export default function DealMeModal({
     const userAskedForStrictFilters = radiusActive || when !== "today";
 
     const shouldShowFallback =
-      primaryResultsEmpty &&
+      (primaryResultsEmpty || noResultsAfterType) &&
       (allDeals.length > 0 || allLunch.length > 0 || allHappyHours.length > 0) &&
-      !userAskedForStrictFilters;
+      (!userAskedForStrictFilters || noResultsAfterType);
 
     console.log("[deal-me] after filters:", {
       daily: finalDaily.length,
       lunch: finalLunch.length,
       happy: finalHappy.length,
       fallback: shouldShowFallback,
+      typeFallback: noResultsAfterType,
     });
 
     if (shouldShowFallback) {
+      if (noResultsAfterType) {
+        return {
+          dailyDeals: allDeals,
+          lunchDeals: allLunch,
+          happyHours: allHappyHours,
+          showFallback: true,
+          typeFallback: true,
+        };
+      }
       return {
-        dailyDeals: dealType === "all" || dealType === "daily" ? allDeals : [],
-        lunchDeals:
-          dealType === "all" || dealType === "lunch"
-            ? allLunch
-            : [],
-        happyHours: dealType === "all" || dealType === "happy-hour" ? allHappyHours : [],
+        dailyDeals: filteredDaily,
+        lunchDeals: filteredLunch,
+        happyHours: filteredHappy,
         showFallback: true,
+        typeFallback: false,
       };
     }
 
@@ -574,7 +588,8 @@ export default function DealMeModal({
       dailyDeals: finalDaily,
       lunchDeals: finalLunch,
       happyHours: finalHappy,
-        showFallback: shouldShowFallback,
+      showFallback: shouldShowFallback,
+      typeFallback: false,
     };
   }, [allDeals, allLunch, allHappyHours, userLocation, radius, when, dealType]);
 
@@ -608,8 +623,11 @@ export default function DealMeModal({
   return (
     <AnimatePresence>
       {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40"
+        <motion.div
+          className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/40"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           onClick={(e) => {
             if (e.target === e.currentTarget) onClose();
           }}
@@ -620,10 +638,10 @@ export default function DealMeModal({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="bg-white rounded-t-2xl md:rounded-2xl shadow-lg fixed inset-x-0 bottom-0 md:relative md:inset-x-auto md:w-[720px] md:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col md:m-4"
+            className="w-full md:max-w-lg bg-white rounded-t-3xl md:rounded-2xl shadow-lg max-h-[100vh] overflow-y-auto pb-6 relative"
             onClick={(e) => e.stopPropagation()}
           >
-          {/* Header */}
+            {/* Header */}
           <div className="flex items-center justify-between p-4 md:p-6 border-b">
             <h2 className="text-xl md:text-2xl font-semibold">Deals near you</h2>
             <button
@@ -637,23 +655,8 @@ export default function DealMeModal({
 
           {/* Filters */}
           <div className="p-4 border-b bg-gray-50 space-y-3">
-            {/* First row: Deal Type, Within, Location */}
+            {/* First row: Distance + Location controls */}
             <div className="flex flex-wrap items-center gap-3">
-              {/* Deal Type */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 whitespace-nowrap">Deal me a</label>
-                <select
-                  value={dealTypeLabel}
-                  onChange={(e) => setDealTypeLabel(e.target.value)}
-                  className="w-full md:w-auto px-3 py-1 text-sm rounded-md border bg-white"
-                >
-                  <option value="All deals">All deals</option>
-                  <option value="Daily deals">Daily deals</option>
-                  <option value="Lunch specials">Lunch specials</option>
-                  <option value="Happy hour">Happy hour</option>
-                </select>
-              </div>
-
               {/* Distance */}
               <div className="flex items-center gap-2">
                 <label className="text-sm text-gray-600 whitespace-nowrap">Within</label>
@@ -720,6 +723,32 @@ export default function DealMeModal({
                 <option value="2hours">On in 2 hours</option>
               </select>
             </div>
+
+            {/* Deal type */}
+            <div>
+              <span className="block text-xs font-medium text-slate-500 mb-2">
+                Deal type
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {Object.keys(DEAL_TYPE_MAP).map((label) => {
+                  const isActive = dealTypeLabel === label;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => setDealTypeLabel(label)}
+                      className={`rounded-full px-3 py-1 text-sm border transition ${
+                        isActive
+                          ? "bg-orange-100 border-orange-400 text-orange-700"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Content */}
@@ -757,7 +786,9 @@ export default function DealMeModal({
               {showFallback && isFallback && (
                 <div className="rounded-lg bg-orange-50 border border-orange-200 px-4 py-3 mb-4">
                   <p className="text-sm text-orange-800">
-                    No deals matched your distance and time filters. Showing {dealTypeLabel.toLowerCase()} in {regionLabel} instead.
+                    No deals matched your filters. Showing{" "}
+                    {typeFallback ? "all available deals" : `${dealTypeLabel.toLowerCase()} in ${regionLabel}`}{" "}
+                    instead.
                   </p>
                 </div>
               )}
@@ -999,7 +1030,7 @@ export default function DealMeModal({
           )}
           </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

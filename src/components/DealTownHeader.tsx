@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import HeaderMenu from "@/components/HeaderMenu";
 import SubmitDealModal from "@/components/SubmitDealModal";
 import RegionSwitcher from "@/components/RegionSwitcher";
 import DealMeModal from "@/components/deal-me/DealMeModal";
@@ -80,8 +79,6 @@ export default function DealTownHeader() {
             >
               Submit a Deal
             </button>
-
-            <HeaderMenu />
           </div>
         </div>
       </header>
