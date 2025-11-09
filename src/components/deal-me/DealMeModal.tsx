@@ -149,6 +149,7 @@ export default function DealMeModal({
   const dealType = DEAL_TYPE_MAP[dealTypeLabel] ?? "all";
   const [radius, setRadius] = useState<number | null>(2000); // 2km default
   const [locationSource, setLocationSource] = useState<"auto" | "manual">("auto");
+  const [manualAddress, setManualAddress] = useState<string>("");
   const [when, setWhen] = useState<"now" | "1hour" | "2hours" | "today">("today");
   const [isFallback, setIsFallback] = useState(false);
   const hasLoaded = useRef(false);
@@ -186,8 +187,11 @@ export default function DealMeModal({
   };
 
   // Handler for location selected from Google Places
-  const handleLocationFromSearch = (loc: { lat: number; lng: number }) => {
-    setUserLocation(loc);
+  const handleLocationFromSearch = (loc: { lat: number; lng: number; description?: string | null }) => {
+    setUserLocation({ lat: loc.lat, lng: loc.lng });
+    if (typeof loc.description === "string") {
+      setManualAddress(loc.description);
+    }
     setLocationError(null);
     setLocationSource("manual");
   };
@@ -199,6 +203,7 @@ export default function DealMeModal({
       setUserLocation(null); // Reset location on close
       setLocationError(null); // Reset error on close
       setLocationSource("auto"); // Reset to auto location
+      setManualAddress("");
           setDealTypeLabel("All deals"); // Reset to all deals
       setRadius(2000); // Reset to 2km
       setWhen("today"); // Reset to "Today"
@@ -681,6 +686,7 @@ export default function DealMeModal({
                   onClick={() => {
                     setLocationSource("auto");
                     handleUseMyLocation();
+                    setManualAddress("");
                   }}
                   className={`px-3 py-1 text-sm rounded-md transition ${
                     locationSource === "auto"
@@ -702,7 +708,10 @@ export default function DealMeModal({
                   Enter location
                 </button>
                 {locationSource === "manual" && (
-                  <LocationInput onSelectLocation={handleLocationFromSearch} />
+                  <LocationInput
+                    value={manualAddress}
+                    onSelectLocation={handleLocationFromSearch}
+                  />
                 )}
               </div>
             </div>
