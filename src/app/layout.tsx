@@ -76,10 +76,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <StickyNav />
         <main className="flex-grow">{children}</main>
         <Footer />
-        {process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY && (
+        {(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+          process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY) && (
           <Script
-            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`}
-            strategy="lazyOnload"
+            src={`https://maps.googleapis.com/maps/api/js?key=${
+              process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+              process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY
+            }&libraries=places`}
+            strategy="afterInteractive"
           />
         )}
       </body>

@@ -639,7 +639,7 @@ export default function DealMeModal({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/40"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-3 sm:px-4 py-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -653,7 +653,11 @@ export default function DealMeModal({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="w-full md:max-w-lg bg-white rounded-t-3xl md:rounded-2xl shadow-lg max-h-[100vh] pb-0 relative overflow-hidden flex flex-col"
+            className="
+              w-full max-w-lg bg-white rounded-3xl shadow-2xl
+              max-h-full overflow-y-auto
+              flex flex-col pb-[env(safe-area-inset-bottom)] relative
+            "
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
