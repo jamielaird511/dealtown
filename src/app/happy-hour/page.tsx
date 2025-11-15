@@ -17,24 +17,25 @@ export default async function HappyHourPage() {
 
   const { data, error } = await supabase
     .from("happy_hours")
-    .select(`
-      id,
-      title,
-      details,
-      price_cents,
-      start_time,
-      end_time,
-      days,
-      is_active,
-      venue:venues!happy_hours_venue_id_fkey(name, address, suburb, website_url)
-    `)
+    .select(
+      `
+        id,
+        title,
+        details,
+        price_cents,
+        start_time,
+        end_time,
+        days,
+        is_active,
+        venue:venues!happy_hours_venue_id_fkey(name, address, suburb, website_url)
+      `
+    )
     .eq("is_active", true);
 
   if (error) {
     console.error("[happy hour] fetch error", error);
   }
 
-  // Map strings/numbers -> 0..6 (Sun..Sat)
   const dayMap: Record<string, number> = {
     sun: 0, sunday: 0,
     mon: 1, monday: 1,
@@ -46,11 +47,12 @@ export default async function HappyHourPage() {
   };
 
   const normalizeDays = (arr: unknown): number[] | null => {
-    if (!arr || !Array.isArray(arr) || arr.length === 0) return null; // null = show every day
+    if (!arr || !Array.isArray(arr) || arr.length === 0) return null;
     const out: number[] = [];
     for (const v of arr) {
-      if (typeof v === "number") out.push(v >= 1 && v <= 7 ? v % 7 : v); // 1..7 -> 0..6
-      else if (typeof v === "string") {
+      if (typeof v === "number") {
+        out.push(v >= 1 && v <= 7 ? v % 7 : v);
+      } else if (typeof v === "string") {
         const k = v.trim().toLowerCase();
         if (k in dayMap) out.push(dayMap[k]);
       }
@@ -61,15 +63,10 @@ export default async function HappyHourPage() {
   const items = (data ?? []).map((row: any) => ({
     id: row.id,
     notes: row.details ?? null,
-    // optional price badge if you want it
     price: row.price_cents != null ? row.price_cents / 100 : null,
-
     start_time: row.start_time,
     end_time: row.end_time,
-
-    // 👇 normalize happy_hours.days -> client expected days_of_week
     days_of_week: normalizeDays(row.days),
-
     venueName: row.venue?.name ?? null,
     addressLine: [row.venue?.address, row.venue?.suburb].filter(Boolean).join(", ") || null,
     venueWebsite: row.venue?.website_url ?? null,

@@ -1,12 +1,16 @@
-import AdminHeader from "@/components/admin/AdminHeader";
-import Link from "next/link";
-import { getSupabaseServerComponentClient } from "@/lib/supabaseClients";
-import { toggleHappyHourActive } from "./actions";
-import HappyHoursTable from "./HappyHoursTable";
-import { unstable_noStore as noStore } from "next/cache";
+"use client";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import HappyHoursTable from "./HappyHoursTable";
+
+const REGIONS = [
+  { value: "queenstown", label: "Queenstown" },
+  { value: "wanaka", label: "Wanaka" },
+  { value: "dunedin", label: "Dunedin" },
+];
 
 function toMsg(err: any, fallback = "Unknown error") {
   try {
@@ -19,68 +23,102 @@ function toMsg(err: any, fallback = "Unknown error") {
   }
 }
 
-async function getHappyHoursSafe(): Promise<{ rows: any[]; errorMsg?: string }> {
-  noStore(); // ensure no caching happens for this call
-  const supabase = getSupabaseServerComponentClient();
-  const { data, error } = await supabase
-    .from("happy_hours")
-    .select(`
-      id, title, details, price_cents, start_time, end_time, days, is_active,
-      venues:venues!happy_hours_venue_id_fkey ( id, name, address )
-    `)
-    .order("start_time", { ascending: true });
+export default function HappyHoursPage() {
+  const searchParams = useSearchParams();
+  const [region, setRegion] = useState("queenstown");
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | undefined>();
 
-  if (error) {
-    console.error("getHappyHours error:", {
-      code: (error as any).code,
-      message: (error as any).message,
-      details: (error as any).details,
-      hint: (error as any).hint,
-    });
-    return { rows: [], errorMsg: toMsg(error, "Failed to load happy hours") };
-  }
+  useEffect(() => {
+    async function loadHappyHours() {
+      setLoading(true);
+      setFetchError(undefined);
 
-  const rows =
-    (data ?? []).map((h: any) => ({
-      id: h.id,
-      venue: h.venues?.name ?? "—",
-      address: h.venues?.address ?? "",
-      title: h.title,
-      details: h.details,
-      price_cents: h.price_cents,
-      start: h.start_time,
-      end: h.end_time,
-      days: h.days, // keep raw
-      active: !!h.is_active,
-    })) ?? [];
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("happy_hours")
+        .select(`
+          id, title, details, price_cents, start_time, end_time, days, is_active,
+          venues:venues!happy_hours_venue_id_fkey ( id, name, address, region )
+        `)
+        .order("start_time", { ascending: true });
 
-  return { rows };
-}
+      if (error) {
+        console.error("getHappyHours error:", {
+          code: (error as any).code,
+          message: (error as any).message,
+          details: (error as any).details,
+          hint: (error as any).hint,
+        });
+        setFetchError(toMsg(error, "Failed to load happy hours"));
+        setLoading(false);
+        return;
+      }
 
-export default async function HappyHoursPage({
-  searchParams,
-}: {
-  searchParams?: { error?: string; notice?: string };
-}) {
-  const { rows, errorMsg } = await getHappyHoursSafe();
+      // Filter client-side by venue.region
+      const filtered = (data ?? []).filter(
+        (h: any) => h.venues?.region === region
+      );
+
+      const mappedRows =
+        filtered.map((h: any) => ({
+          id: h.id,
+          venue: h.venues?.name ?? "—",
+          address: h.venues?.address ?? "",
+          region: h.venues?.region ?? null,
+          title: h.title,
+          details: h.details,
+          price_cents: h.price_cents,
+          start: h.start_time,
+          end: h.end_time,
+          days: h.days, // keep raw
+          active: !!h.is_active,
+        })) ?? [];
+
+      setRows(mappedRows);
+      setLoading(false);
+    }
+
+    loadHappyHours();
+  }, [region]);
 
   const rawError =
-    (searchParams?.error ? decodeURIComponent(searchParams.error) : undefined) ??
-    errorMsg;
+    (searchParams?.get("error") ? decodeURIComponent(searchParams.get("error")!) : undefined) ??
+    fetchError;
 
-  const rawNotice = searchParams?.notice ? decodeURIComponent(searchParams.notice) : undefined;
+  const rawNotice = searchParams?.get("notice") ? decodeURIComponent(searchParams.get("notice")!) : undefined;
 
   const errorBanner = rawError === 'NEXT_REDIRECT' ? undefined : rawError;
   const noticeBanner = rawNotice === 'NEXT_REDIRECT' ? undefined : rawNotice;
 
   return (
     <section className="space-y-4">
-      <AdminHeader
-        title="Happy Hour"
-        subtitle="Times & days for drink specials"
-        ctaHref="/admin/happy-hours/new"
-        ctaLabel="New Happy Hour"
-      />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Happy Hour</h1>
+          <p className="text-sm text-gray-600">Times & days for drink specials</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <select
+            value={region}
+            onChange={(e) => setRegion(e.target.value)}
+            className="rounded-md border px-3 py-2 text-sm"
+          >
+            {REGIONS.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          <Link
+            href="/admin/happy-hours/new"
+            className="rounded-lg bg-orange-500 text-white px-4 py-2 font-medium hover:bg-orange-600"
+          >
+            New Happy Hour
+          </Link>
+        </div>
+      </div>
 
       {errorBanner && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -107,9 +145,17 @@ export default async function HappyHoursPage({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
-        <HappyHoursTable rows={rows} />
-      </div>
+      {loading && (
+        <div className="rounded-2xl border bg-white p-8 text-center text-gray-500">
+          Loading happy hours...
+        </div>
+      )}
+
+      {!loading && (
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
+          <HappyHoursTable rows={rows} />
+        </div>
+      )}
     </section>
   );
 }

@@ -93,3 +93,8 @@ body {
 .overscroll-contain {
   overscroll-behavior: contain;
 }
+
+/* Ensure Google Places dropdown shows above modals */
+.pac-container {
+  z-index: 999999 !important;
+}

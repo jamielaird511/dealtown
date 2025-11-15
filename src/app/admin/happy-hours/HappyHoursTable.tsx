@@ -8,6 +8,7 @@ type HHRow = {
   id: string;
   venue: string;
   address: string;
+  region: string | null;
   title: string | null;
   details: string | null;
   price_cents: number | null;
@@ -59,6 +60,7 @@ export default function HappyHoursTable({ rows }: { rows: HHRow[] }) {
               onToggle={() => handleSort("venue")}
             />
           </th>
+          <th className="px-4 py-3 font-medium">Region</th>
           <th className="px-4 py-3 font-medium">
             <SortableHeader
               label="Days"
@@ -90,7 +92,7 @@ export default function HappyHoursTable({ rows }: { rows: HHRow[] }) {
       <tbody className="divide-y divide-gray-100 text-sm">
         {sortedRows.length === 0 ? (
           <tr>
-            <td className="px-4 py-6 text-gray-500" colSpan={7}>
+            <td className="px-4 py-6 text-gray-500" colSpan={8}>
               No happy hours yet.
             </td>
           </tr>
