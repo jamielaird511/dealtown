@@ -1,3 +1,7 @@
+export const dynamic = "force-dynamic";
+
+export const revalidate = 60; // or 0 if you want no caching
+
 // Server Component
 import { supabaseAdmin } from "@/server/supabaseAdmin";
 
