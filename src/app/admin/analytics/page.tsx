@@ -1,8 +1,7 @@
 export const dynamic = "force-dynamic";
 
-export const revalidate = 60; // or 0 if you want no caching
-
 // Server Component
+import { unstable_noStore } from "next/cache";
 import { supabaseAdmin } from "@/server/supabaseAdmin";
 
 type ClickEvent = {
@@ -46,6 +45,7 @@ function formatDateNZ(d: Date) {
 }
 
 export default async function AnalyticsPage() {
+  unstable_noStore();
   // 14-day window (NZT)
   const now = new Date();
   const since = new Date(Date.now() - 14 * 86400000);
